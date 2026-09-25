@@ -9,7 +9,7 @@ a model again.
 flowchart LR
     source[("Experiment source<br/>(versioned)")]
     policy[("Evaluation policy<br/>(versioned)")]
-    route[("Route configuration<br/>(versioned input)")]
+    model_config[("Model configuration<br/>(versioned input)")]
     package[("Experiment package<br/>(immutable · SHA-256)")]
     run[("Run evidence<br/>(immutable)")]
     evaluation[("Evaluation artifact<br/>(immutable)")]
@@ -28,7 +28,7 @@ flowchart LR
     compiler -->|writes| package
 
     package -->|records and preflight| runner
-    route -->|route configuration| runner
+    model_config -->|model configuration| runner
     runner -->|resolves task contract| contracts
     runner -->|executes decisions| adapter
     contracts -->|renders and parses decisions| adapter
@@ -78,7 +78,7 @@ are identified by their recorded SHA-256 hashes and never overwritten.
 | Artifact | Lifecycle | Read by | Written by |
 | --- | --- | --- | --- |
 | Experiment source | Versioned in Git | Experiment compiler | Maintainers |
-| Route configuration | Versioned, editable input | Runner | Maintainers |
+| Model configuration | Versioned, editable input | Runner | Maintainers |
 | Evaluation policy | Versioned, editable input | Scorer | Maintainers |
 | Experiment package | Immutable, SHA-256 identified | Runner, scorer, comparator | Experiment compiler |
 | Run evidence | Immutable | Scorer | Runner |
