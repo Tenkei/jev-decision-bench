@@ -34,3 +34,13 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 1)
         self.assertEqual(stderr.getvalue(), "Error: Missing API key environment variable: EXAMPLE_API_KEY\n")
         self.assertTrue(mocked_run.call_args.kwargs["repeat"])
+
+    def test_run_accepts_a_resume_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory) / "run"
+            run_dir.mkdir()
+            write_json(run_dir / "run-manifest.json", {"status": "completed"})
+            with patch("jev_decision_bench.cli.run", return_value=run_dir) as mocked_run:
+                exit_code = main(["run", "--package", "package", "--model-config", "config", "--resume", str(run_dir)])
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(mocked_run.call_args.kwargs["resume_run_dir"], run_dir)

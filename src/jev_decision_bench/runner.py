@@ -146,6 +146,78 @@ def _reject_equivalent_run(matches: list[tuple[Path, str]]) -> None:
     )
 
 
+_TERMINAL_PREDICTION_STATUSES = frozenset({"valid", "invalid", "provider_error"})
+
+
+def _read_resume_predictions(predictions_path: Path, records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not predictions_path.exists():
+        return []
+    predictions = read_jsonl(predictions_path)
+    record_ids = {record["decision_id"] for record in records}
+    seen: set[str] = set()
+    for prediction in predictions:
+        decision_id = prediction.get("decision_id")
+        status = prediction.get("status")
+        if not isinstance(decision_id, str) or decision_id not in record_ids:
+            raise ValueError("Resume run contains a prediction outside the selected experiment package")
+        if decision_id in seen:
+            raise ValueError(f"Resume run contains duplicate prediction: {decision_id}")
+        if status not in _TERMINAL_PREDICTION_STATUSES:
+            raise ValueError(f"Resume run contains a non-terminal prediction status: {status}")
+        seen.add(decision_id)
+    return predictions
+
+
+def _prediction_counts(predictions: list[dict[str, Any]], total: int) -> dict[str, int]:
+    return {
+        "total": total,
+        "attempted": len(predictions),
+        "valid": sum(prediction["status"] == "valid" for prediction in predictions),
+        "invalid": sum(prediction["status"] == "invalid" for prediction in predictions),
+        "provider_error": sum(prediction["status"] == "provider_error" for prediction in predictions),
+    }
+
+
+def _has_successful_preflight(events_path: Path) -> bool:
+    if not events_path.exists():
+        return False
+    for event in read_jsonl(events_path):
+        if event.get("type") != "preflight":
+            continue
+        response = event.get("response")
+        return not (isinstance(response, dict) and "error" in response)
+    return False
+
+
+def _load_resume_run(
+    run_dir: Path,
+    *,
+    experiment_package_hash: str,
+    model_config_sha256: str,
+    adapter_version: str,
+    records: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[dict[str, Any]], bool]:
+    manifest_path = run_dir / "run-manifest.json"
+    if not manifest_path.is_file():
+        raise ValueError(f"Resume run is missing its manifest: {run_dir}")
+    run_manifest = read_json(manifest_path)
+    mismatches = [
+        label
+        for label, expected, actual in (
+            ("experiment package", experiment_package_hash, run_manifest.get("experiment_package_hash")),
+            ("model configuration", model_config_sha256, run_manifest.get("model_config_sha256")),
+            ("adapter version", adapter_version, run_manifest.get("adapter_version")),
+        )
+        if expected != actual
+    ]
+    if mismatches:
+        raise ValueError(f"Resume run does not match the current {'; '.join(mismatches)}")
+    if run_manifest.get("status") != "running":
+        raise ValueError(f"Only a running run can be resumed, got: {run_manifest.get('status')}")
+    predictions = _read_resume_predictions(run_dir / "predictions.jsonl", records)
+    return run_manifest, predictions, _has_successful_preflight(run_dir / "events.jsonl")
+
+
 def run(
     package_dir: Path,
     model_config_path: Path,
@@ -153,6 +225,7 @@ def run(
     on_progress: Callable[[int, int], None] | None = None,
     *,
     repeat: bool = False,
+    resume_run_dir: Path | None = None,
 ) -> Path:
     manifest = read_json(package_dir / "experiment-manifest.json")
     records = read_jsonl(package_dir / "records.choice.jsonl")
@@ -160,36 +233,51 @@ def run(
     pinned_config = _pinned_model_config(config)
     model_config_sha256 = sha256_bytes(canonical_json(pinned_config).encode("utf-8"))
     renderer_version = adapter_version(config)
-    if not repeat:
-        _reject_equivalent_run(
-            _equivalent_runs(
-                artifacts_root,
-                experiment_package_hash=manifest["experiment_package_hash"],
-                model_config_sha256=model_config_sha256,
-                adapter_version=renderer_version,
-            )
+    if resume_run_dir is not None:
+        run_dir = resume_run_dir
+        run_manifest, existing_predictions, preflight_succeeded = _load_resume_run(
+            run_dir,
+            experiment_package_hash=manifest["experiment_package_hash"],
+            model_config_sha256=model_config_sha256,
+            adapter_version=renderer_version,
+            records=records,
         )
+        run_manifest["counts"] = _prediction_counts(existing_predictions, len(records))
+        write_json(run_dir / "run-manifest.json", _ordered_run_manifest(run_manifest))
+    else:
+        existing_predictions = []
+        preflight_succeeded = False
+        if not repeat:
+            _reject_equivalent_run(
+                _equivalent_runs(
+                    artifacts_root,
+                    experiment_package_hash=manifest["experiment_package_hash"],
+                    model_config_sha256=model_config_sha256,
+                    adapter_version=renderer_version,
+                )
+            )
+        run_id = _run_id(manifest, config)
+        run_dir = artifacts_root / "runs" / run_id
+        run_dir.mkdir(parents=True, exist_ok=False)
+        run_manifest = {
+            "run_id": run_id,
+            "started_at": _utc_now(),
+            "status": "running",
+            "experiment_package_hash": manifest["experiment_package_hash"],
+            "experiment_id": manifest["experiment_id"],
+            "experiment_version": manifest["experiment_version"],
+            "model_config": pinned_config,
+            "model_config_sha256": model_config_sha256,
+            "adapter_version": renderer_version,
+            "execution": {"mode": "serial", "logical_decisions_per_request": 1},
+            "counts": _prediction_counts([], len(records)),
+        }
+        write_json(run_dir / "model-config.json", pinned_config)
+        write_json(run_dir / "run-manifest.json", _ordered_run_manifest(run_manifest))
+
     adapter = build_adapter(config)
-    run_id = _run_id(manifest, config)
-    run_dir = artifacts_root / "runs" / run_id
-    run_dir.mkdir(parents=True, exist_ok=False)
     events_path = run_dir / "events.jsonl"
     predictions_path = run_dir / "predictions.jsonl"
-    run_manifest: dict[str, Any] = {
-        "run_id": run_id,
-        "started_at": _utc_now(),
-        "status": "running",
-        "experiment_package_hash": manifest["experiment_package_hash"],
-        "experiment_id": manifest["experiment_id"],
-        "experiment_version": manifest["experiment_version"],
-        "model_config": pinned_config,
-        "model_config_sha256": model_config_sha256,
-        "adapter_version": renderer_version,
-        "execution": {"mode": "serial", "logical_decisions_per_request": 1},
-        "counts": {"total": len(records), "attempted": 0, "valid": 0, "invalid": 0, "provider_error": 0},
-    }
-    write_json(run_dir / "model-config.json", pinned_config)
-    write_json(run_dir / "run-manifest.json", _ordered_run_manifest(run_manifest))
 
     # An in-domain synthetic request validates credentials and response shape
     # without exposing or scoring a package record.  It must have a clear
@@ -202,41 +290,45 @@ def run(
         "question": records[0]["question"],
         "criteria": records[0]["criteria"],
     }
-    try:
-        started = time.monotonic_ns()
-        preflight = _call_with_retries(adapter, preflight_record, int(config.get("max_retries", 2)))
-        append_jsonl(
-            events_path,
-            {
-                "type": "preflight",
-                "at": _utc_now(),
-                "latency_ms": (time.monotonic_ns() - started) / 1_000_000,
-                "response": preflight.raw_response,
-                "request": _safe_event_request(preflight_record, config, adapter),
-            },
-            sort_keys=False,
-        )
-    except AdapterError as error:
-        append_jsonl(
-            events_path,
-            {
-                "type": "preflight",
-                "at": _utc_now(),
-                "response": {"error": str(error), "body": error.body},
-                "request": _safe_event_request(preflight_record, config, adapter),
-            },
-            sort_keys=False,
-        )
-        run_manifest["status"] = "preflight_failed"
-        run_manifest["finished_at"] = _utc_now()
-        run_manifest["preflight_error"] = str(error)
-        write_json(run_dir / "run-manifest.json", _ordered_run_manifest(run_manifest))
-        return run_dir
+    if not preflight_succeeded:
+        try:
+            started = time.monotonic_ns()
+            preflight = _call_with_retries(adapter, preflight_record, int(config.get("max_retries", 2)))
+            append_jsonl(
+                events_path,
+                {
+                    "type": "preflight",
+                    "at": _utc_now(),
+                    "latency_ms": (time.monotonic_ns() - started) / 1_000_000,
+                    "response": preflight.raw_response,
+                    "request": _safe_event_request(preflight_record, config, adapter),
+                },
+                sort_keys=False,
+            )
+        except AdapterError as error:
+            append_jsonl(
+                events_path,
+                {
+                    "type": "preflight",
+                    "at": _utc_now(),
+                    "response": {"error": str(error), "body": error.body},
+                    "request": _safe_event_request(preflight_record, config, adapter),
+                },
+                sort_keys=False,
+            )
+            run_manifest["status"] = "preflight_failed"
+            run_manifest["finished_at"] = _utc_now()
+            run_manifest["preflight_error"] = str(error)
+            write_json(run_dir / "run-manifest.json", _ordered_run_manifest(run_manifest))
+            return run_dir
 
+    completed_ids = {prediction["decision_id"] for prediction in existing_predictions}
     if on_progress:
-        on_progress(0, len(records))
+        on_progress(len(completed_ids), len(records))
 
     for record in records:
+        if record["decision_id"] in completed_ids:
+            continue
         run_manifest["counts"]["attempted"] += 1
         started = time.monotonic_ns()
         try:

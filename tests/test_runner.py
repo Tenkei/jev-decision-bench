@@ -39,6 +39,17 @@ class _InvalidOutputAdapter(_FakeAdapter):
         raise AdapterError("invalid JSON", invalid_output=True, body="not JSON")
 
 
+class _InterruptedAdapter(_FakeAdapter):
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def predict(self, record):
+        self.calls += 1
+        if self.calls == 3:
+            raise KeyboardInterrupt
+        return super().predict(record)
+
+
 class RunnerTests(unittest.TestCase):
     def test_runner_records_every_terminal_prediction_and_scores_offline(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -92,6 +103,47 @@ class RunnerTests(unittest.TestCase):
             with patch("jev_decision_bench.runner.build_adapter", return_value=_FakeAdapter()):
                 repeated_run = run(package, config, root / "artifacts", repeat=True)
             self.assertNotEqual(run_dir, repeated_run)
+
+    def test_runner_resumes_an_interrupted_run_without_repeating_predictions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package"
+            package.mkdir()
+            write_json(
+                package / "experiment-manifest.json",
+                {"experiment_package_hash": "package-hash", "experiment_id": "fixture", "experiment_version": "v0"},
+            )
+            write_jsonl(
+                package / "records.choice.jsonl",
+                [
+                    {"decision_id": "a", "state": {"query": "first"}, "question": "q", "criteria": {"one": "one", "two": "two"}, "gold": "one"},
+                    {"decision_id": "b", "state": {"query": "second"}, "question": "q", "criteria": {"one": "one", "two": "two"}, "gold": "two"},
+                ],
+            )
+            config = root / "model.json"
+            write_json(
+                config,
+                {"adapter": "openai_compatible_chat_completions", "provider": "fixture", "endpoint": "https://example.invalid", "api_key_env": "UNUSED", "model_id": "fake", "max_retries": 0},
+            )
+            with patch("jev_decision_bench.runner.build_adapter", return_value=_InterruptedAdapter()):
+                with self.assertRaises(KeyboardInterrupt):
+                    run(package, config, root / "artifacts")
+            interrupted_run = next((root / "artifacts" / "runs").iterdir())
+            self.assertEqual([item["decision_id"] for item in read_jsonl(interrupted_run / "predictions.jsonl")], ["a"])
+
+            progress: list[tuple[int, int]] = []
+            with patch("jev_decision_bench.runner.build_adapter", return_value=_FakeAdapter()):
+                resumed_run = run(
+                    package,
+                    config,
+                    root / "artifacts",
+                    on_progress=lambda completed, total: progress.append((completed, total)),
+                    resume_run_dir=interrupted_run,
+                )
+            self.assertEqual(resumed_run, interrupted_run)
+            self.assertEqual([item["decision_id"] for item in read_jsonl(resumed_run / "predictions.jsonl")], ["a", "b"])
+            self.assertEqual(read_json(resumed_run / "run-manifest.json")["status"], "completed")
+            self.assertEqual(progress, [(1, 2), (2, 2)])
 
     def test_runner_rejects_inline_api_key(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

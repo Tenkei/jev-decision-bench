@@ -149,6 +149,20 @@ stops rather than spending on an accidental duplicate. To intentionally repeat
 the treatment—for example, to measure run-to-run variation—add `--repeat` to
 the command.
 
+If a terminal disconnects or the process is interrupted, continue the same
+compatible run rather than starting again:
+
+```bash
+.venv/bin/jev-decision-bench run \
+  --package "$PACKAGE" \
+  --model-config configs/openai-compatible.json \
+  --resume artifacts/runs/<interrupted-run-id>
+```
+
+Resume verifies the experiment package, model configuration, and adapter
+version; it skips every decision that already has a terminal prediction. A
+successful recorded preflight is not repeated.
+
 While a run is active, the CLI displays completed test cases and percentage,
 for example `Progress: 1,542/3,080 (50.1%)`. Failed or invalid decisions still
 advance this count because they are completed, recorded test cases.

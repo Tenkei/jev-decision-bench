@@ -34,10 +34,17 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--package", required=True, type=Path)
     run_parser.add_argument("--model-config", required=True, type=Path)
     run_parser.add_argument("--artifacts-root", default="artifacts", type=_artifacts_path)
-    run_parser.add_argument(
+    repeat_or_resume = run_parser.add_mutually_exclusive_group()
+    repeat_or_resume.add_argument(
         "--repeat",
         action="store_true",
         help="Intentionally create a new trial even when an equivalent run already exists",
+    )
+    repeat_or_resume.add_argument(
+        "--resume",
+        type=Path,
+        metavar="RUN",
+        help="Continue an interrupted compatible run directory",
     )
     score_parser = subparsers.add_parser("score", help="Score saved run evidence offline")
     score_parser.add_argument("--run", required=True, type=Path)
@@ -62,6 +69,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.artifacts_root,
                 on_progress=_run_progress,
                 repeat=args.repeat,
+                resume_run_dir=args.resume,
             )
             print(run_dir)
             run_manifest = read_json(run_dir / "run-manifest.json")
