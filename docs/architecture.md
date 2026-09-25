@@ -9,6 +9,7 @@ a model again.
 flowchart TD
     source["Versioned experiment source<br/>spec · rubric · source pins<br/>preflight fixture · recommended evaluation"]
     package["Immutable experiment package<br/>records · rubric · preflight"]
+    runner["Runner"]
     contract["Task contract<br/>Choice · Noul · future Score"]
     adapter["Model adapter"]
     provider["Provider API"]
@@ -17,8 +18,9 @@ flowchart TD
     evaluation["Immutable evaluation artifact<br/>evaluation-config.json · scores.json"]
 
     source -->|prepare| package
-    package -->|selects| contract
-    package -->|run| adapter
+    package -->|run| runner
+    runner -->|resolves task type| contract
+    runner -->|executes records| adapter
     contract -->|renders and validates| adapter
     adapter -->|request| provider
     provider -->|response| adapter
