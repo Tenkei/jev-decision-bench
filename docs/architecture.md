@@ -9,7 +9,7 @@ a model again.
 flowchart LR
     source[("Experiment source<br/>(versioned)")]
     policy[("Evaluation policy<br/>(versioned)")]
-    model_config[("Model configuration<br/>(versioned input)")]
+    model_config[("Model configuration<br/>(pinned per run)")]
     package[("Experiment package<br/>(immutable · SHA-256)")]
     run[("Run evidence<br/>(immutable)")]
     evaluation[("Evaluation artifact<br/>(immutable)")]
@@ -48,9 +48,11 @@ flowchart LR
 
     classDef component fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-width:1px
     classDef versioned fill:#dbeafe,stroke:#2563eb,color:#1e3a8a,stroke-width:2px
+    classDef pinned fill:#fef3c7,stroke:#b45309,color:#78350f,stroke-width:2px
     classDef immutable fill:#d1fae5,stroke:#047857,color:#064e3b,stroke-width:2px
     class compiler,contracts,runner,adapter,provider,scorer,comparator component
-    class source,policy,route versioned
+    class source,policy versioned
+    class model_config pinned
     class package,run,evaluation,comparison immutable
 ```
 
@@ -58,9 +60,10 @@ flowchart LR
 
 Rectangles are code or external-service components. Cylinder-shaped data nodes are
 artifacts read or written by those components. Blue data nodes are versioned
-source or configuration inputs; green data nodes are immutable artifacts. The
-benchmark does not cryptographically sign artifacts today: immutable artifacts
-are identified by their recorded SHA-256 hashes and never overwritten.
+inputs, yellow data nodes are pinned for a particular run, and green data nodes
+are immutable artifacts. The benchmark does not cryptographically sign
+artifacts today: immutable artifacts are identified by their recorded SHA-256
+hashes and never overwritten.
 
 ## Components
 
@@ -78,7 +81,7 @@ are identified by their recorded SHA-256 hashes and never overwritten.
 | Artifact | Lifecycle | Read by | Written by |
 | --- | --- | --- | --- |
 | Experiment source | Versioned in Git | Experiment compiler | Maintainers |
-| Model configuration | Versioned, editable input | Runner | Maintainers |
+| Model configuration | Pinned per run by SHA-256 | Runner | Maintainers; runner snapshots the sanitized configuration |
 | Evaluation policy | Versioned, editable input | Scorer | Maintainers |
 | Experiment package | Immutable, SHA-256 identified | Runner, scorer, comparator | Experiment compiler |
 | Run evidence | Immutable | Scorer | Runner |
