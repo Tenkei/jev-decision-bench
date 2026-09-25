@@ -29,7 +29,8 @@ class CliTests(unittest.TestCase):
                 {"status": "preflight_failed", "preflight_error": "Missing API key environment variable: EXAMPLE_API_KEY"},
             )
             stderr = io.StringIO()
-            with patch("jev_decision_bench.cli.run", return_value=run_dir), contextlib.redirect_stderr(stderr):
-                exit_code = main(["run", "--package", "package", "--model-config", "config"])
+            with patch("jev_decision_bench.cli.run", return_value=run_dir) as mocked_run, contextlib.redirect_stderr(stderr):
+                exit_code = main(["run", "--package", "package", "--model-config", "config", "--repeat"])
         self.assertEqual(exit_code, 1)
         self.assertEqual(stderr.getvalue(), "Error: Missing API key environment variable: EXAMPLE_API_KEY\n")
+        self.assertTrue(mocked_run.call_args.kwargs["repeat"])

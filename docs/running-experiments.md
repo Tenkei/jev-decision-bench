@@ -143,6 +143,12 @@ path. Its name identifies the prepared experiment, provider, and model:
 Requests are serial, one decision per provider call, so the results have
 directly interpretable per-decision latency.
 
+Before calling a provider, the runner checks for an existing run with the same
+experiment-package hash, model-configuration hash, and adapter version. It
+stops rather than spending on an accidental duplicate. To intentionally repeat
+the treatment—for example, to measure run-to-run variation—add `--repeat` to
+the command.
+
 While a run is active, the CLI displays completed test cases and percentage,
 for example `Progress: 1,542/3,080 (50.1%)`. Failed or invalid decisions still
 advance this count because they are completed, recorded test cases.

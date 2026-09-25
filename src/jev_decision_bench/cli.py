@@ -34,6 +34,11 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--package", required=True, type=Path)
     run_parser.add_argument("--model-config", required=True, type=Path)
     run_parser.add_argument("--artifacts-root", default="artifacts", type=_artifacts_path)
+    run_parser.add_argument(
+        "--repeat",
+        action="store_true",
+        help="Intentionally create a new trial even when an equivalent run already exists",
+    )
     score_parser = subparsers.add_parser("score", help="Score saved run evidence offline")
     score_parser.add_argument("--run", required=True, type=Path)
     score_parser.add_argument("--package", required=True, type=Path)
@@ -51,7 +56,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "prepare":
             print(prepare(args.experiment, args.artifacts_root))
         elif args.command == "run":
-            run_dir = run(args.package, args.model_config, args.artifacts_root, on_progress=_run_progress)
+            run_dir = run(
+                args.package,
+                args.model_config,
+                args.artifacts_root,
+                on_progress=_run_progress,
+                repeat=args.repeat,
+            )
             print(run_dir)
             run_manifest = read_json(run_dir / "run-manifest.json")
             if run_manifest.get("status") == "preflight_failed":

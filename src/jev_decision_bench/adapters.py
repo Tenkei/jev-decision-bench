@@ -7,6 +7,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from .util import canonical_json
@@ -37,15 +38,23 @@ class AdapterResult:
     raw_response: dict[str, Any]
 
 
-def _post_json(endpoint: str, payload: dict[str, Any], api_key: str, timeout_seconds: float) -> dict[str, Any]:
+def _post_json(
+    endpoint: str,
+    payload: dict[str, Any],
+    api_key: str,
+    timeout_seconds: float,
+    *,
+    api_headers: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "jev-decision-bench/0.1",
+        **(api_headers or {"Authorization": f"Bearer {api_key}"}),
+    }
     request = Request(
         endpoint,
         data=canonical_json(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "User-Agent": "jev-decision-bench/0.1",
-        },
+        headers=headers,
         method="POST",
     )
     try:
@@ -85,8 +94,8 @@ class ChoiceAdapter:
         )
 
 
-class TypeSafeDirectAdapter(ChoiceAdapter):
-    adapter_version = "typesafe-direct-choice-v1"
+class TypeSafeSystemOneAdapter(ChoiceAdapter):
+    adapter_version = "typesafe-system-one-choice-v1"
 
     def render(self, record: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -167,8 +176,8 @@ def _model_arguments(config: dict[str, Any], reserved: set[str]) -> dict[str, An
     return dict(arguments)
 
 
-class OpenAICompatibleAdapter(ChoiceAdapter):
-    adapter_version = "openai-compatible-choice-v2"
+class OpenAICompatibleChatCompletionsAdapter(ChoiceAdapter):
+    adapter_version = "openai-compatible-chat-completions-choice-v2"
 
     def render(self, record: dict[str, Any]) -> dict[str, Any]:
         schema = _choice_schema(record)
@@ -230,10 +239,10 @@ class OpenAICompatibleAdapter(ChoiceAdapter):
         )
 
 
-class OpenAIResponsesAdapter(ChoiceAdapter):
+class OpenAICompatibleResponsesAdapter(ChoiceAdapter):
     """Adapter for providers implementing the OpenAI Responses API."""
 
-    adapter_version = "openai-responses-choice-v1"
+    adapter_version = "openai-compatible-responses-choice-v1"
 
     def render(self, record: dict[str, Any]) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -243,8 +252,14 @@ class OpenAIResponsesAdapter(ChoiceAdapter):
                 {"role": "system", "content": _choice_instructions()},
                 {"role": "user", "content": _choice_input(record)},
             ],
-            "text": {"format": {"type": "json_schema", **_choice_schema(record)}},
         }
+        response_format = self.config.get("response_format", "json_schema")
+        if response_format == "json_schema":
+            payload["text"] = {"format": {"type": "json_schema", **_choice_schema(record)}}
+        elif response_format == "json_object":
+            payload["text"] = {"format": {"type": "json_object"}}
+        else:
+            raise ValueError(f"Unsupported OpenAI Responses response_format: {response_format}")
         payload.update(
             _model_arguments(self.config, {"model", "max_output_tokens", "input", "text"})
         )
@@ -278,6 +293,110 @@ class OpenAIResponsesAdapter(ChoiceAdapter):
             answer=choice,
             selected_probability=float(confidence),
             model_revision=response.get("model") or self.config.get("model_revision"),
+            provider_usage=usage,
+            cost_usd=_configured_cost(usage, self.config),
+            raw_response=response,
+        )
+
+
+class BedrockConverseAdapter(ChoiceAdapter):
+    """Adapter for Bedrock Runtime's provider-neutral Converse API."""
+
+    adapter_version = "bedrock-converse-choice-v1"
+
+    def render(self, record: dict[str, Any]) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "system": [{"text": _choice_instructions()}],
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"text": _choice_input(record)}],
+                }
+            ],
+            "inferenceConfig": {"maxTokens": self.config.get("max_tokens", 128)},
+        }
+        response_format = self.config.get("response_format", "json_schema")
+        if response_format == "json_schema":
+            schema = _choice_schema(record)
+            # Bedrock Converse rejects numeric minimum and maximum constraints.
+            # The benchmark still validates confidence is in [0, 1] after the
+            # response, so this only relaxes a provider-side rendering detail.
+            confidence = schema["schema"]["properties"]["confidence"]
+            confidence.pop("minimum")
+            confidence.pop("maximum")
+            payload["outputConfig"] = {
+                "textFormat": {
+                    "type": "json_schema",
+                    "structure": {
+                        "jsonSchema": {
+                            "name": schema["name"],
+                            "description": "Return one bounded benchmark classification decision.",
+                            "schema": canonical_json(schema["schema"]),
+                        }
+                    },
+                }
+            }
+        elif response_format != "json_object":
+            raise ValueError(f"Unsupported Bedrock Converse response_format: {response_format}")
+        model_options = self.config.get("model_config", {})
+        if not isinstance(model_options, dict):
+            raise ValueError("model_config must be a JSON object")
+        if model_options:
+            payload["additionalModelRequestFields"] = model_options
+        return payload
+
+    def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
+        endpoint = self.config["endpoint"].rstrip("/")
+        model_id = quote(self.config["model_id"], safe=".:_-" )
+        return _post_json(
+            f"{endpoint}/model/{model_id}/converse",
+            payload,
+            self.api_key,
+            float(self.config.get("timeout_seconds", 60)),
+        )
+
+    def predict(self, record: dict[str, Any]) -> AdapterResult:
+        response = self._post(self.render(record))
+        try:
+            text = next(
+                part["text"]
+                for part in response["output"]["message"]["content"]
+                if isinstance(part, dict) and isinstance(part.get("text"), str)
+            )
+            parsed = json.loads(text)
+        except (KeyError, StopIteration, TypeError, json.JSONDecodeError) as error:
+            raise AdapterError(
+                f"Bedrock Converse response lacks valid JSON content: {error}",
+                invalid_output=True,
+                body=canonical_json(response),
+            ) from error
+        if not isinstance(parsed, dict):
+            raise AdapterError(
+                "Bedrock Converse response JSON is not an object",
+                invalid_output=True,
+                body=canonical_json(response),
+            )
+        choice, confidence = parsed.get("choice"), parsed.get("confidence")
+        if not isinstance(choice, str) or not isinstance(confidence, (int, float)):
+            raise AdapterError(
+                "Bedrock Converse response lacks choice or confidence",
+                invalid_output=True,
+                body=canonical_json(response),
+            )
+        raw_usage = response.get("usage") if isinstance(response.get("usage"), dict) else None
+        usage = (
+            {
+                "input_tokens": raw_usage.get("inputTokens"),
+                "output_tokens": raw_usage.get("outputTokens"),
+                "total_tokens": raw_usage.get("totalTokens"),
+            }
+            if raw_usage
+            else None
+        )
+        return AdapterResult(
+            answer=choice,
+            selected_probability=float(confidence),
+            model_revision=self.config.get("model_revision"),
             provider_usage=usage,
             cost_usd=_configured_cost(usage, self.config),
             raw_response=response,
@@ -324,15 +443,26 @@ def _configured_cost(usage: dict[str, Any] | None, config: dict[str, Any]) -> fl
     return (prompt * float(config["input_cost_per_million"]) + completion * float(config["output_cost_per_million"])) / 1_000_000
 
 
-def build_adapter(config: dict[str, Any]) -> ChoiceAdapter:
+def _adapter_class(config: dict[str, Any]) -> type[ChoiceAdapter]:
     adapter = config.get("adapter")
-    if adapter == "typesafe_direct":
-        return TypeSafeDirectAdapter(config)
-    if adapter == "openai_compatible":
-        return OpenAICompatibleAdapter(config)
-    if adapter == "openai_responses":
-        return OpenAIResponsesAdapter(config)
+    if adapter == "typesafe_system_one":
+        return TypeSafeSystemOneAdapter
+    if adapter == "openai_compatible_chat_completions":
+        return OpenAICompatibleChatCompletionsAdapter
+    if adapter == "openai_compatible_responses":
+        return OpenAICompatibleResponsesAdapter
+    if adapter == "bedrock_converse":
+        return BedrockConverseAdapter
     raise ValueError(f"Unsupported adapter: {adapter}")
+
+
+def adapter_version(config: dict[str, Any]) -> str:
+    """Return the request-rendering version without requiring credentials."""
+    return _adapter_class(config).adapter_version
+
+
+def build_adapter(config: dict[str, Any]) -> ChoiceAdapter:
+    return _adapter_class(config)(config)
 
 
 def sleep_before_retry(attempt: int) -> None:

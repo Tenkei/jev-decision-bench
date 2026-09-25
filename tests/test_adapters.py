@@ -1,24 +1,26 @@
 from __future__ import annotations
 
+import json
 import os
 import unittest
 from unittest.mock import patch
 
 from jev_decision_bench.adapters import (
     AdapterError,
-    OpenAICompatibleAdapter,
-    OpenAIResponsesAdapter,
-    TypeSafeDirectAdapter,
+    BedrockConverseAdapter,
+    OpenAICompatibleChatCompletionsAdapter,
+    OpenAICompatibleResponsesAdapter,
+    TypeSafeSystemOneAdapter,
 )
 
 
 class AdapterTests(unittest.TestCase):
-    def test_typesafe_adapter_includes_model_id_in_native_request(self) -> None:
+    def test_typesafe_system_one_adapter_includes_model_id_in_native_request(self) -> None:
         record = {"state": {"query": "x"}, "question": "q", "criteria": {"one": "1"}}
         with patch.dict(os.environ, {"TEST_KEY": "secret"}):
-            adapter = TypeSafeDirectAdapter(
+            adapter = TypeSafeSystemOneAdapter(
                 {
-                    "adapter": "typesafe_direct",
+                    "adapter": "typesafe_system_one",
                     "provider": "test",
                     "endpoint": "https://example.invalid",
                     "api_key_env": "TEST_KEY",
@@ -28,18 +30,18 @@ class AdapterTests(unittest.TestCase):
             payload = adapter.render(record)
         self.assertEqual(payload["model"], "jev")
 
-    def test_openai_adapter_parses_schema_constrained_output(self) -> None:
+    def test_openai_chat_completions_adapter_parses_schema_constrained_output(self) -> None:
         record = {"state": {"query": "x"}, "question": "q", "criteria": {"one": "1", "two": "2"}}
         response = {"choices": [{"message": {"content": '{"choice":"one","confidence":0.8}'}}]}
         with patch.dict(os.environ, {"TEST_KEY": "secret"}), patch("jev_decision_bench.adapters._post_json", return_value=response):
-            adapter = OpenAICompatibleAdapter(
-                {"adapter": "openai_compatible", "provider": "test", "endpoint": "https://example.invalid", "api_key_env": "TEST_KEY", "model_id": "model"}
+            adapter = OpenAICompatibleChatCompletionsAdapter(
+                {"adapter": "openai_compatible_chat_completions", "provider": "test", "endpoint": "https://example.invalid", "api_key_env": "TEST_KEY", "model_id": "model"}
             )
             result = adapter.predict(record)
         self.assertEqual(result.answer, "one")
         self.assertEqual(result.selected_probability, 0.8)
 
-    def test_openai_adapter_discards_a_complete_reasoning_prefix(self) -> None:
+    def test_openai_chat_completions_adapter_discards_a_complete_reasoning_prefix(self) -> None:
         record = {"state": {"query": "x"}, "question": "q", "criteria": {"one": "1", "two": "2"}}
         response = {
             "choices": [
@@ -49,14 +51,14 @@ class AdapterTests(unittest.TestCase):
         with patch.dict(os.environ, {"TEST_KEY": "secret"}), patch(
             "jev_decision_bench.adapters._post_json", return_value=response
         ):
-            adapter = OpenAICompatibleAdapter(
-                {"adapter": "openai_compatible", "provider": "test", "endpoint": "https://example.invalid", "api_key_env": "TEST_KEY", "model_id": "model"}
+            adapter = OpenAICompatibleChatCompletionsAdapter(
+                {"adapter": "openai_compatible_chat_completions", "provider": "test", "endpoint": "https://example.invalid", "api_key_env": "TEST_KEY", "model_id": "model"}
             )
             result = adapter.predict(record)
         self.assertEqual(result.answer, "one")
         self.assertEqual(result.selected_probability, 0.8)
 
-    def test_openai_responses_adapter_parses_structured_output(self) -> None:
+    def test_openai_compatible_responses_adapter_parses_structured_output(self) -> None:
         record = {"state": {"query": "x"}, "question": "q", "criteria": {"one": "1", "two": "2"}}
         response = {
             "model": "response-model",
@@ -71,9 +73,9 @@ class AdapterTests(unittest.TestCase):
         with patch.dict(os.environ, {"TEST_KEY": "secret"}), patch(
             "jev_decision_bench.adapters._post_json", return_value=response
         ):
-            adapter = OpenAIResponsesAdapter(
+            adapter = OpenAICompatibleResponsesAdapter(
                 {
-                    "adapter": "openai_responses",
+                    "adapter": "openai_compatible_responses",
                     "provider": "test",
                     "endpoint": "https://example.invalid",
                     "api_key_env": "TEST_KEY",
@@ -92,12 +94,55 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(payload["reasoning"], {"effort": "low"})
         self.assertEqual(payload["temperature"], 0.2)
 
+    def test_openai_compatible_responses_adapter_can_request_a_json_object(self) -> None:
+        record = {"state": {"query": "x"}, "question": "q", "criteria": {"one": "1"}}
+        with patch.dict(os.environ, {"TEST_KEY": "secret"}):
+            adapter = OpenAICompatibleResponsesAdapter(
+                {
+                    "adapter": "openai_compatible_responses",
+                    "provider": "test",
+                    "endpoint": "https://example.invalid",
+                    "api_key_env": "TEST_KEY",
+                    "model_id": "model",
+                    "response_format": "json_object",
+                }
+            )
+            payload = adapter.render(record)
+        self.assertEqual(payload["text"], {"format": {"type": "json_object"}})
+
+    def test_bedrock_converse_adapter_uses_a_bearer_key_and_native_schema(self) -> None:
+        record = {"state": {"query": "x"}, "question": "q", "criteria": {"one": "1", "two": "2"}}
+        response = {
+            "usage": {"inputTokens": 11, "outputTokens": 7, "totalTokens": 18},
+            "output": {"message": {"content": [{"text": '{"choice":"two","confidence":0.7}'}]}},
+        }
+        with patch.dict(os.environ, {"TEST_KEY": "secret"}), patch(
+            "jev_decision_bench.adapters._post_json", return_value=response
+        ) as post:
+            adapter = BedrockConverseAdapter(
+                {
+                    "adapter": "bedrock_converse",
+                    "provider": "amazon-bedrock",
+                    "endpoint": "https://bedrock-runtime.ap-northeast-1.amazonaws.com",
+                    "api_key_env": "TEST_KEY",
+                    "model_id": "jp.anthropic.claude-haiku-4-5-20251001-v1:0",
+                }
+            )
+            result = adapter.predict(record)
+            payload = adapter.render(record)
+        self.assertEqual(result.answer, "two")
+        self.assertEqual(result.provider_usage["input_tokens"], 11)
+        self.assertEqual(payload["outputConfig"]["textFormat"]["type"], "json_schema")
+        rendered_schema = json.loads(payload["outputConfig"]["textFormat"]["structure"]["jsonSchema"]["schema"])
+        self.assertEqual(rendered_schema["properties"]["confidence"], {"type": "number"})
+        self.assertEqual(post.call_args.args[0], "https://bedrock-runtime.ap-northeast-1.amazonaws.com/model/jp.anthropic.claude-haiku-4-5-20251001-v1:0/converse")
+
     def test_model_config_cannot_override_the_benchmark_contract(self) -> None:
         record = {"state": {"query": "x"}, "question": "q", "criteria": {"one": "1"}}
         with patch.dict(os.environ, {"TEST_KEY": "secret"}):
-            adapter = OpenAICompatibleAdapter(
+            adapter = OpenAICompatibleChatCompletionsAdapter(
                 {
-                    "adapter": "openai_compatible",
+                    "adapter": "openai_compatible_chat_completions",
                     "provider": "test",
                     "endpoint": "https://example.invalid",
                     "api_key_env": "TEST_KEY",
@@ -112,14 +157,14 @@ class AdapterTests(unittest.TestCase):
         error = AdapterError("rate limited", retryable=True)
         self.assertTrue(error.retryable)
 
-    def test_openai_adapter_preserves_invalid_response_for_diagnosis(self) -> None:
+    def test_openai_chat_completions_adapter_preserves_invalid_response_for_diagnosis(self) -> None:
         record = {"state": {"query": "x"}, "question": "q", "criteria": {"one": "1"}}
         response = {"choices": [{"message": {"content": "not JSON"}}]}
         with patch.dict(os.environ, {"TEST_KEY": "secret"}), patch(
             "jev_decision_bench.adapters._post_json", return_value=response
         ):
-            adapter = OpenAICompatibleAdapter(
-                {"adapter": "openai_compatible", "provider": "test", "endpoint": "https://example.invalid", "api_key_env": "TEST_KEY", "model_id": "model"}
+            adapter = OpenAICompatibleChatCompletionsAdapter(
+                {"adapter": "openai_compatible_chat_completions", "provider": "test", "endpoint": "https://example.invalid", "api_key_env": "TEST_KEY", "model_id": "model"}
             )
             with self.assertRaises(AdapterError) as raised:
                 adapter.predict(record)

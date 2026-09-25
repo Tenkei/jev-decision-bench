@@ -1,5 +1,5 @@
 {
-  "adapter": "openai_compatible",
+  "adapter": "openai_compatible_chat_completions",
   "provider": "gemini",
   "endpoint": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
   "api_key_env": "GEMINI_API_KEY",

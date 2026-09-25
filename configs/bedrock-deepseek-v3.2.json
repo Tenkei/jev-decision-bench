@@ -1,0 +1,16 @@
+{
+  "adapter": "openai_compatible_chat_completions",
+  "provider": "amazon-bedrock",
+  "model_id": "deepseek.v3.2",
+  "model_revision": null,
+  "endpoint": "https://bedrock-mantle.ap-northeast-1.api.aws/v1/chat/completions",
+  "api_key_env": "BEDROCK_API_KEY",
+  "response_format": "json_object",
+  "max_tokens": 1024,
+  "timeout_seconds": 60,
+  "max_retries": 2,
+  "model_config": {
+    "temperature": 0
+  },
+  "cost_basis": "unknown"
+}

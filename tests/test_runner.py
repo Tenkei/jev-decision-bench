@@ -12,7 +12,7 @@ from jev_decision_bench.util import canonical_json, read_json, read_jsonl, sha25
 
 
 class _FakeAdapter:
-    adapter_version = "fake-choice-v1"
+    adapter_version = "openai-compatible-chat-completions-choice-v2"
 
     def render(self, record):
         return {"fixture": record["decision_id"], "query": record["state"]["query"]}
@@ -57,7 +57,7 @@ class RunnerTests(unittest.TestCase):
             config = root / "model.json"
             write_json(
                 config,
-                {"adapter": "openai_compatible", "provider": "fixture", "endpoint": "https://example.invalid", "api_key_env": "UNUSED", "model_id": "fake", "max_retries": 0},
+                {"adapter": "openai_compatible_chat_completions", "provider": "fixture", "endpoint": "https://example.invalid", "api_key_env": "UNUSED", "model_id": "fake", "max_retries": 0},
             )
             progress: list[tuple[int, int]] = []
             with patch("jev_decision_bench.runner.build_adapter", return_value=_FakeAdapter()):
@@ -87,6 +87,11 @@ class RunnerTests(unittest.TestCase):
             metrics = score(run_dir, package)
             self.assertAlmostEqual(metrics["coverage"], 1.0)
             self.assertAlmostEqual(metrics["accuracy_on_valid"], 0.5)
+            with self.assertRaisesRegex(ValueError, "equivalent run already exists"):
+                run(package, config, root / "artifacts")
+            with patch("jev_decision_bench.runner.build_adapter", return_value=_FakeAdapter()):
+                repeated_run = run(package, config, root / "artifacts", repeat=True)
+            self.assertNotEqual(run_dir, repeated_run)
 
     def test_runner_rejects_inline_api_key(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -105,7 +110,7 @@ class RunnerTests(unittest.TestCase):
             write_json(
                 config,
                 {
-                    "adapter": "openai_compatible",
+                    "adapter": "openai_compatible_chat_completions",
                     "provider": "fixture",
                     "endpoint": "https://example.invalid",
                     "api_key_env": "UNUSED",
@@ -133,7 +138,7 @@ class RunnerTests(unittest.TestCase):
             write_json(
                 config,
                 {
-                    "adapter": "openai_compatible",
+                    "adapter": "openai_compatible_chat_completions",
                     "provider": "fixture",
                     "endpoint": "https://example.invalid",
                     "api_key_env": "UNUSED",
@@ -160,7 +165,7 @@ class RunnerTests(unittest.TestCase):
             config = root / "model.json"
             write_json(
                 config,
-                {"adapter": "openai_compatible", "provider": "fixture", "endpoint": "https://example.invalid", "api_key_env": "UNUSED", "model_id": "fake", "max_retries": 0},
+                {"adapter": "openai_compatible_chat_completions", "provider": "fixture", "endpoint": "https://example.invalid", "api_key_env": "UNUSED", "model_id": "fake", "max_retries": 0},
             )
             with patch("jev_decision_bench.runner.build_adapter", return_value=_InvalidOutputAdapter()):
                 run_dir = run(package, config, root / "artifacts")

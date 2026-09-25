@@ -1,5 +1,5 @@
 {
-  "adapter": "openai_compatible",
+  "adapter": "openai_compatible_chat_completions",
   "provider": "openai-compatible",
   "endpoint": "https://api.example.com/v1/chat/completions",
   "api_key_env": "OPENAI_COMPATIBLE_API_KEY",

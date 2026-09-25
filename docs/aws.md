@@ -1,7 +1,7 @@
 # AWS / Amazon Bedrock
 
 This guide creates a dedicated Amazon Bedrock API key for this benchmark and
-uses it with the existing OpenAI-compatible adapter. Run these commands
+uses it with the existing OpenAI-compatible Chat Completions adapter. Run these commands
 yourself; they create AWS IAM resources and may incur model-inference charges.
 
 Amazon Bedrock's `bedrock-runtime` endpoint accepts OpenAI Chat Completions
@@ -126,7 +126,7 @@ contains the API key.
 ```bash
 cat > configs/bedrock.json <<EOF
 {
-  "adapter": "openai_compatible",
+  "adapter": "openai_compatible_chat_completions",
   "provider": "amazon-bedrock",
   "endpoint": "https://bedrock-runtime.$(aws configure get region).amazonaws.com/openai/v1/chat/completions",
   "api_key_env": "BEDROCK_API_KEY",
@@ -185,7 +185,7 @@ tracked configuration:
 ```bash
 .venv/bin/jev-decision-bench run \
   --package "$PACKAGE" \
-  --model-config configs/bedrock-gpt-5.6-luna.json
+  --model-config configs/bedrock-openai-gpt-5.6-luna.json
 ```
 
 The configuration uses the Responses endpoint and

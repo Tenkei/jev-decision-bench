@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from .adapters import AdapterError, build_adapter, sleep_before_retry
+from .adapters import AdapterError, adapter_version, build_adapter, sleep_before_retry
 from .util import append_jsonl, canonical_json, order_fields, read_json, read_jsonl, sha256_bytes, write_json
 
 
@@ -105,16 +105,70 @@ def _inline_api_key_paths(value: Any, path: str = "") -> list[str]:
     return found
 
 
+def _equivalent_runs(
+    artifacts_root: Path,
+    *,
+    experiment_package_hash: str,
+    model_config_sha256: str,
+    adapter_version: str,
+) -> list[tuple[Path, str]]:
+    """Find prior runs with an identical task, route configuration, and renderer."""
+    runs_dir = artifacts_root / "runs"
+    if not runs_dir.is_dir():
+        return []
+    matches: list[tuple[Path, str]] = []
+    for run_dir in sorted(runs_dir.iterdir()):
+        manifest_path = run_dir / "run-manifest.json"
+        if not manifest_path.is_file():
+            continue
+        try:
+            existing = read_json(manifest_path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        if (
+            existing.get("experiment_package_hash") == experiment_package_hash
+            and existing.get("model_config_sha256") == model_config_sha256
+            and existing.get("adapter_version") == adapter_version
+        ):
+            matches.append((run_dir, str(existing.get("status", "unknown"))))
+    return matches
+
+
+def _reject_equivalent_run(matches: list[tuple[Path, str]]) -> None:
+    if not matches:
+        return
+    existing = "\n".join(f"- {path} ({status})" for path, status in matches)
+    raise ValueError(
+        "An equivalent run already exists:\n"
+        f"{existing}\n"
+        "This matches the experiment package, model configuration, and adapter version. "
+        "Use score or compare to inspect it, or pass --repeat to create an intentional new trial."
+    )
+
+
 def run(
     package_dir: Path,
     model_config_path: Path,
     artifacts_root: Path,
     on_progress: Callable[[int, int], None] | None = None,
+    *,
+    repeat: bool = False,
 ) -> Path:
     manifest = read_json(package_dir / "experiment-manifest.json")
     records = read_jsonl(package_dir / "records.choice.jsonl")
     config = read_json(model_config_path)
     pinned_config = _pinned_model_config(config)
+    model_config_sha256 = sha256_bytes(canonical_json(pinned_config).encode("utf-8"))
+    renderer_version = adapter_version(config)
+    if not repeat:
+        _reject_equivalent_run(
+            _equivalent_runs(
+                artifacts_root,
+                experiment_package_hash=manifest["experiment_package_hash"],
+                model_config_sha256=model_config_sha256,
+                adapter_version=renderer_version,
+            )
+        )
     adapter = build_adapter(config)
     run_id = _run_id(manifest, config)
     run_dir = artifacts_root / "runs" / run_id
@@ -129,8 +183,8 @@ def run(
         "experiment_id": manifest["experiment_id"],
         "experiment_version": manifest["experiment_version"],
         "model_config": pinned_config,
-        "model_config_sha256": sha256_bytes(canonical_json(pinned_config).encode("utf-8")),
-        "adapter_version": adapter.adapter_version,
+        "model_config_sha256": model_config_sha256,
+        "adapter_version": renderer_version,
         "execution": {"mode": "serial", "logical_decisions_per_request": 1},
         "counts": {"total": len(records), "attempted": 0, "valid": 0, "invalid": 0, "provider_error": 0},
     }
@@ -195,7 +249,7 @@ def run(
                 "status": status,
                 "answer": result.answer if not validation_error else None,
                 "selected_probability": result.selected_probability if not validation_error else None,
-                "probability_provenance": "native" if config["adapter"] == "typesafe_direct" else "verbalized",
+                "probability_provenance": "native" if config["adapter"] == "typesafe_system_one" else "verbalized",
                 "model": {
                     "provider": config["provider"],
                     "id": config["model_id"],

@@ -1,0 +1,13 @@
+{
+  "adapter": "bedrock_converse",
+  "provider": "amazon-bedrock",
+  "model_id": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "model_revision": null,
+  "endpoint": "https://bedrock-runtime.ap-northeast-1.amazonaws.com",
+  "api_key_env": "BEDROCK_API_KEY",
+  "response_format": "json_schema",
+  "max_tokens": 1024,
+  "timeout_seconds": 60,
+  "max_retries": 2,
+  "cost_basis": "unknown"
+}

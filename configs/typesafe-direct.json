@@ -1,5 +1,5 @@
 {
-  "adapter": "typesafe_direct",
+  "adapter": "typesafe_system_one",
   "provider": "typesafe",
   "endpoint": "https://api.typesafe.ai/v1/systemone",
   "api_key_env": "TYPESAFE_API_KEY",
