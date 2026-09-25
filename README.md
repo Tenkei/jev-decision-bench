@@ -86,6 +86,8 @@ and provider-specific setup.
   datasets, and status.
 - [Methodology](docs/methodology.md) — experiment packages, benchmark items,
   model runs, and result contracts.
+- [Architecture](docs/architecture.md) — code boundaries, immutable artifacts,
+  task contracts, adapters, and re-evaluation.
 - [Running experiments](docs/running-experiments.md) — environment setup,
   preparation, execution, scoring, and comparison.
 - [AWS / Amazon Bedrock](docs/aws.md) — self-service AWS credentials and

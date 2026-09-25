@@ -273,5 +273,6 @@ probability is retained as such; it is never made up by the evaluator.
 
 ## Next
 
-Read the [Experiment index](index.md) to select a versioned workload and see
-its current implementation status.
+Read the [Architecture](architecture.md) to see how packages, task contracts,
+runs, and evaluations map to the codebase. Then use the
+[Experiment index](index.md) to select a versioned workload.
