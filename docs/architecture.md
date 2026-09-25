@@ -7,15 +7,15 @@ a model again.
 
 ```mermaid
 flowchart TD
-    source["Versioned experiment source<br/>spec · rubric · source pins<br/>preflight fixture · recommended evaluation"]
-    package["Immutable experiment package<br/>records · rubric · preflight"]
+    source["Experiment source (versioned)<br/>spec · rubric · source pins<br/>preflight fixture · recommended evaluation"]
+    package["Experiment package (immutable)<br/>records · rubric · preflight"]
     runner["Runner"]
     contract["Task contract<br/>Choice · Noul · future Score"]
     adapter["Model adapter"]
     provider["Provider API"]
-    run["Run evidence<br/>pinned route config · events · predictions"]
+    run["Run evidence (immutable)<br/>pinned route config · events · predictions"]
     policy["Evaluation policy"]
-    evaluation["Immutable evaluation artifact<br/>evaluation-config.json · scores.json"]
+    evaluation["Evaluation artifact (immutable)<br/>evaluation-config.json · scores.json"]
 
     source -->|prepare| package
     package -->|run| runner
