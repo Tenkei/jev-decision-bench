@@ -5,26 +5,26 @@ the evaluation of that execution. This makes it possible to compare providers
 fairly, preserve raw evidence, and re-evaluate a completed run without calling
 a model again.
 
-```text
-versioned experiment source
-  spec + rubric + source pins + preflight fixture + recommended evaluation
-                         │ prepare
-                         ▼
-immutable experiment package ────────► task contract
-  records + rubric + preflight          Choice / Noul / future Score
-                         │                         │
-                         │ run                     │ renders and validates
-                         ▼                         ▼
-                    model adapter ─────────► provider API
-                         │
-                         ▼
-                     run evidence
-  pinned route config + events + normalized predictions
-                         │
-                         │ score with an evaluation policy
-                         ▼
-                immutable evaluation artifact
-  evaluation-config.json + scores.json
+```mermaid
+flowchart TD
+    source["Versioned experiment source<br/>spec · rubric · source pins<br/>preflight fixture · recommended evaluation"]
+    package["Immutable experiment package<br/>records · rubric · preflight"]
+    contract["Task contract<br/>Choice · Noul · future Score"]
+    adapter["Model adapter"]
+    provider["Provider API"]
+    run["Run evidence<br/>pinned route config · events · predictions"]
+    policy["Evaluation policy"]
+    evaluation["Immutable evaluation artifact<br/>evaluation-config.json · scores.json"]
+
+    source -->|prepare| package
+    package -->|selects| contract
+    package -->|run| adapter
+    contract -->|renders and validates| adapter
+    adapter -->|request| provider
+    provider -->|response| adapter
+    adapter --> run
+    run -->|score| evaluation
+    policy -->|configures| evaluation
 ```
 
 ## Main boundaries
