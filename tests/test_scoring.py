@@ -40,3 +40,34 @@ class ScoringTests(unittest.TestCase):
             self.assertTrue((run / "evaluation.json").exists())
             self.assertFalse((run / "metrics.json").exists())
             self.assertFalse((run / "report.md").exists())
+
+    def test_scores_noul_predictions_and_functionality_slices(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package"
+            run = root / "run"
+            package.mkdir()
+            run.mkdir()
+            write_json(package / "experiment-manifest.json", {"experiment_package_hash": "package-hash", "record_sets": ["noul"]})
+            write_jsonl(
+                package / "records.noul.jsonl",
+                [
+                    {"decision_id": "a", "task_type": "noul", "gold": True, "metadata": {"functionality": "threat"}},
+                    {"decision_id": "b", "task_type": "noul", "gold": False, "metadata": {"functionality": "counter_speech"}},
+                ],
+            )
+            write_json(run / "run-manifest.json", {"experiment_package_hash": "package-hash", "run_id": "run-1"})
+            write_jsonl(
+                run / "predictions.jsonl",
+                [
+                    {"decision_id": "a", "status": "valid", "answer": True, "selected_probability": 0.9, "positive_probability": 0.9, "timing_ms": 10, "cost_usd": None},
+                    {"decision_id": "b", "status": "valid", "answer": False, "selected_probability": 0.8, "positive_probability": 0.2, "timing_ms": 20, "cost_usd": None},
+                ],
+            )
+            metrics = score(run, package)
+            self.assertAlmostEqual(metrics["accuracy_on_valid"], 1.0)
+            self.assertAlmostEqual(metrics["precision_on_valid"], 1.0)
+            self.assertAlmostEqual(metrics["recall_on_valid"], 1.0)
+            self.assertAlmostEqual(metrics["auroc_on_valid"], 1.0)
+            self.assertAlmostEqual(metrics["true_probability_brier_on_valid"], 0.025)
+            self.assertEqual(metrics["functionality_slices"]["threat"]["total_records"], 1)

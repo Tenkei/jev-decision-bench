@@ -29,38 +29,31 @@ def _pipeline_version() -> str:
 
 
 def _load_spec(experiment: str) -> tuple[dict, dict]:
-    if experiment != "banking77-choice-v0":
+    locations = {
+        "banking77-choice-v0": ROOT / "experiments" / "banking77-choice" / "v0",
+        "hatecheck-noul-v0": ROOT / "experiments" / "hatecheck-noul" / "v0",
+    }
+    if experiment not in locations:
         raise ValueError(f"Unsupported experiment: {experiment}")
-    directory = ROOT / "experiments" / "banking77-choice" / "v0"
+    directory = locations[experiment]
     spec = json.loads((directory / "spec.json").read_text(encoding="utf-8"))
     rubric = json.loads((directory / spec["task"]["rubric_path"]).read_text(encoding="utf-8"))
     return spec, rubric
 
 
-def prepare(experiment: str, artifacts_root: Path, downloader=_download) -> Path:
-    """Create an immutable, Choice-only experiment package and return its path."""
-    spec, rubric = _load_spec(experiment)
-    dataset = spec["dataset"]
-    source_bytes: dict[str, bytes] = {}
-    for name, file_spec in dataset["files"].items():
-        content = downloader(file_spec["url"])
-        actual_hash = sha256_bytes(content)
-        if actual_hash != file_spec["sha256"]:
-            raise ValueError(f"Hash mismatch for {name}: expected {file_spec['sha256']}, got {actual_hash}")
-        source_bytes[name] = content
-
+def _compile_banking77(spec: dict, rubric: dict, source_bytes: dict[str, bytes]) -> list[dict]:
     categories = json.loads(source_bytes["categories.json"].decode("utf-8"))
     criteria = rubric["criteria"]
     if categories != list(criteria):
         raise ValueError("Rubric labels must match BANKING77 categories exactly and in source order")
 
     rows = list(csv.DictReader(io.StringIO(source_bytes["test.csv"].decode("utf-8"))))
-    if len(rows) != dataset["expected_row_count"]:
+    if len(rows) != spec["dataset"]["expected_row_count"]:
         raise ValueError(f"Unexpected test row count: {len(rows)}")
     if any(set(row) != {"text", "category"} or row["category"] not in criteria for row in rows):
         raise ValueError("BANKING77 source rows do not match the expected schema")
 
-    records = [
+    return [
         {
             "decision_id": f"banking77-choice-v0:test:{index:04d}",
             "state": {"query": row["text"]},
@@ -73,6 +66,71 @@ def prepare(experiment: str, artifacts_root: Path, downloader=_download) -> Path
         }
         for index, row in enumerate(rows)
     ]
+
+
+def _compile_hatecheck(spec: dict, rubric: dict, source_bytes: dict[str, bytes]) -> list[dict]:
+    rows = list(csv.DictReader(io.StringIO(source_bytes["test_suite_cases.csv"].decode("utf-8"))))
+    if len(rows) != spec["dataset"]["expected_row_count"]:
+        raise ValueError(f"Unexpected HateCheck row count: {len(rows)}")
+    required = {
+        "",
+        "functionality",
+        "case_id",
+        "test_case",
+        "label_gold",
+        "target_ident",
+        "direction",
+        "focus_words",
+        "focus_lemma",
+        "ref_case_id",
+        "ref_templ_id",
+        "templ_id",
+        "case_templ",
+    }
+    if any(set(row) != required or row["label_gold"] not in {"hateful", "non-hateful"} for row in rows):
+        raise ValueError("HateCheck source rows do not match the expected schema")
+    if len({row["case_id"] for row in rows}) != len(rows):
+        raise ValueError("HateCheck case IDs must be unique")
+
+    return [
+        {
+            "decision_id": f"hatecheck-noul-v0:test:{index:04d}",
+            "state": {"text": row["test_case"]},
+            "gold": row["label_gold"] == "hateful",
+            "source_id": f"hatecheck:case:{row['case_id']}",
+            "task_type": "noul",
+            "question": spec["task"]["question"],
+            "criteria": rubric["criteria"],
+            "metadata": {
+                "dataset_row_index": index,
+                "record_set": "noul",
+                "functionality": row["functionality"],
+                "case_id": row["case_id"],
+                "target_ident": row["target_ident"] or None,
+                "direction": row["direction"] or None,
+            },
+        }
+        for index, row in enumerate(rows)
+    ]
+
+
+def prepare(experiment: str, artifacts_root: Path, downloader=_download) -> Path:
+    """Create an immutable experiment package and return its path."""
+    spec, rubric = _load_spec(experiment)
+    dataset = spec["dataset"]
+    source_bytes: dict[str, bytes] = {}
+    for name, file_spec in dataset["files"].items():
+        content = downloader(file_spec["url"])
+        actual_hash = sha256_bytes(content)
+        if actual_hash != file_spec["sha256"]:
+            raise ValueError(f"Hash mismatch for {name}: expected {file_spec['sha256']}, got {actual_hash}")
+        source_bytes[name] = content
+
+    compilers = {
+        "banking77-choice": _compile_banking77,
+        "hatecheck-noul": _compile_hatecheck,
+    }
+    records = compilers[spec["experiment_id"]](spec, rubric, source_bytes)
     records_bytes = "".join(
         json.dumps(record, ensure_ascii=False, sort_keys=False, separators=(",", ":")) + "\n" for record in records
     ).encode("utf-8")
@@ -85,13 +143,13 @@ def prepare(experiment: str, artifacts_root: Path, downloader=_download) -> Path
             "name": dataset["name"],
             "source_repository": dataset["source_repository"],
             "revision": dataset["revision"],
-            "split": "banking_data/test.csv",
-            "row_count": len(rows),
+            "split": dataset["split"],
+            "row_count": len(records),
             "license": dataset["license"],
             "file_hashes": {name: sha256_bytes(content) for name, content in source_bytes.items()},
         },
         "rubric_version": rubric["rubric_version"],
-        "record_sets": ["choice"],
+        "record_sets": [spec["task"]["record_set"]],
         "validation_contract_version": spec["validation_contract_version"],
         "evaluator_version": spec["evaluator_version"],
         "threshold_policy_id": spec["threshold_policy_id"],
@@ -124,8 +182,9 @@ def prepare(experiment: str, artifacts_root: Path, downloader=_download) -> Path
     for name, content in source_bytes.items():
         (source_dir / name).write_bytes(content)
     write_json(package_dir / "rubric.json", rubric)
-    write_jsonl(package_dir / "records.choice.jsonl", records, sort_keys=False)
-    if sha256_file(package_dir / "records.choice.jsonl") != manifest["records_sha256"]:
+    records_path = package_dir / f"records.{spec['task']['record_set']}.jsonl"
+    write_jsonl(records_path, records, sort_keys=False)
+    if sha256_file(records_path) != manifest["records_sha256"]:
         raise RuntimeError("Written record hash differs from compiled record hash")
     write_json(package_dir / "experiment-manifest.json", manifest)
     return package_dir

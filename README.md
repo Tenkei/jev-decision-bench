@@ -66,7 +66,7 @@ benchmark design but no dataset has been adopted yet.
 | --- | --- | --- | --- | --- |
 | Intent / queue routing | `Choice` / `Noul` | [BANKING77](https://github.com/PolyAI-LDN/task-specific-datasets) | Correctly route a noisy support or operations request, either by choosing one queue or by testing membership in a candidate queue; include an `other`/review option where the task permits it. | Choice implementation ready; Noul membership is deferred to the next milestone. |
 | Semantic attribute extraction | Multiple `Noul` / `Choice` | TBD | Extract several controlled features from the same input—for example topic, affected product, stated deadline, and request type—without generating prose. | Backlog — dataset selection required. |
-| Policy & guardrail decisions | `Noul` | TBD | Evaluate eligibility, safety, contradiction, and action-blocking judgments. | Backlog — dataset selection required. |
+| Policy & guardrail decisions | `Noul` | [HateCheck](https://github.com/paul-rottger/hatecheck-data) | Classify hateful versus non-hateful content, including counter-speech, negation, reclamation, and obfuscation. | Noul implementation ready; 29 functionality slices are retained for analysis. |
 | Tool / action approval | `Choice` / `Noul` | TBD | Pick or approve the right next action amid distractors; actions are never executed. | Backlog — dataset selection required. |
 | Severity / priority assessment | `Score` | TBD | Evaluate ordered judgments such as urgency, risk, or business impact. | Backlog — dataset selection required. |
 | Search relevance / ranking | `Noul` / `Score` | TBD | Determine query-document relevance and rank candidates. | Backlog — dataset selection required. |

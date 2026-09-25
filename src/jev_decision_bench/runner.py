@@ -30,9 +30,23 @@ def _run_id(manifest: dict[str, Any], config: dict[str, Any]) -> str:
     return f"{experiment}--{provider}--{model}--{timestamp}--{uuid.uuid4().hex[:8]}"
 
 
-def _validate_choice(record: dict[str, Any], answer: str, probability: float) -> str | None:
-    if answer not in record["criteria"]:
+def _records_path(package_dir: Path, manifest: dict[str, Any]) -> Path:
+    record_sets = manifest.get("record_sets", ["choice"])
+    if not isinstance(record_sets, list) or len(record_sets) != 1 or record_sets[0] not in {"choice", "noul"}:
+        raise ValueError("Experiment package must contain exactly one supported record set")
+    return package_dir / f"records.{record_sets[0]}.jsonl"
+
+
+def _validate_prediction(record: dict[str, Any], answer: str | bool, probability: float, positive_probability: float | None) -> str | None:
+    if record.get("task_type", "choice") == "choice" and answer not in record["criteria"]:
         return f"choice is not in frozen rubric: {answer}"
+    if record.get("task_type") == "noul":
+        if not isinstance(answer, bool) or not isinstance(positive_probability, (int, float)):
+            return "Noul output requires a boolean answer and true probability"
+        if not 0 <= positive_probability <= 1:
+            return f"true probability must be in [0, 1], got {positive_probability}"
+        if answer != (positive_probability >= 0.5):
+            return "Noul answer must match the true-probability threshold"
     if not 0 <= probability <= 1:
         return f"selected probability must be in [0, 1], got {probability}"
     return None
@@ -228,7 +242,7 @@ def run(
     resume_run_dir: Path | None = None,
 ) -> Path:
     manifest = read_json(package_dir / "experiment-manifest.json")
-    records = read_jsonl(package_dir / "records.choice.jsonl")
+    records = read_jsonl(_records_path(package_dir, manifest))
     config = read_json(model_config_path)
     pinned_config = _pinned_model_config(config)
     model_config_sha256 = sha256_bytes(canonical_json(pinned_config).encode("utf-8"))
@@ -284,9 +298,14 @@ def run(
     # answer from the frozen rubric; an intentionally unrelated query can
     # cause a well-behaved bounded classifier to search for a nonexistent
     # "unknown" label instead of testing the response contract.
+    preflight_state = {"query": "My physical card has not arrived."}
+    task_type = records[0].get("task_type", "choice")
+    if task_type == "noul":
+        preflight_state = {"text": "I hate women."}
     preflight_record = {
         "decision_id": "preflight",
-        "state": {"query": "My physical card has not arrived."},
+        "state": preflight_state,
+        "task_type": task_type,
         "question": records[0]["question"],
         "criteria": records[0]["criteria"],
     }
@@ -334,13 +353,19 @@ def run(
         try:
             result = _call_with_retries(adapter, record, int(config.get("max_retries", 2)))
             latency_ms = (time.monotonic_ns() - started) / 1_000_000
-            validation_error = _validate_choice(record, result.answer, result.selected_probability)
+            validation_error = _validate_prediction(
+                record,
+                result.answer,
+                result.selected_probability,
+                result.positive_probability,
+            )
             status = "invalid" if validation_error else "valid"
             prediction = {
                 "decision_id": record["decision_id"],
                 "status": status,
                 "answer": result.answer if not validation_error else None,
                 "selected_probability": result.selected_probability if not validation_error else None,
+                "positive_probability": result.positive_probability if not validation_error else None,
                 "probability_provenance": "native" if config["adapter"] == "typesafe_system_one" else "verbalized",
                 "model": {
                     "provider": config["provider"],
@@ -362,6 +387,7 @@ def run(
                 "status": status,
                 "answer": None,
                 "selected_probability": None,
+                "positive_probability": None,
                 "probability_provenance": None,
                 "model": {"provider": config["provider"], "id": config["model_id"], "revision": config.get("model_revision")},
                 "timing_ms": latency_ms,

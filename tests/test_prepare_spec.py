@@ -23,3 +23,14 @@ class Banking77SpecificationTests(unittest.TestCase):
         for file_spec in spec["dataset"]["files"].values():
             self.assertEqual(len(file_spec["sha256"]), 64)
             self.assertIn(spec["dataset"]["revision"], file_spec["url"])
+
+
+class HateCheckSpecificationTests(unittest.TestCase):
+    def test_spec_pins_the_full_binary_test_suite(self) -> None:
+        spec = json.loads((ROOT / "experiments" / "hatecheck-noul" / "v0" / "spec.json").read_text(encoding="utf-8"))
+        rubric = json.loads((ROOT / "experiments" / "hatecheck-noul" / "v0" / "rubric.json").read_text(encoding="utf-8"))
+        self.assertEqual(spec["experiment_id"], "hatecheck-noul")
+        self.assertEqual(spec["task"]["task_type"], "noul")
+        self.assertEqual(spec["dataset"]["expected_row_count"], 3728)
+        self.assertEqual(len(spec["dataset"]["revision"]), 40)
+        self.assertEqual(set(rubric["criteria"]), {"true", "false"})

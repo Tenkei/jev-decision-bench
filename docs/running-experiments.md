@@ -5,10 +5,10 @@ its task type, dataset, JEV interface, and implementation status. Run only an
 experiment marked ready; deferred entries describe planned work, not runnable
 commands.
 
-This guide runs the Choice-only `banking77-choice-v0` experiment against native JEV
-and an OpenAI-compatible LLM. The benchmark sends one logical decision per
-serial request: 3,080 scored BANKING77 requests plus one unscored preflight
-request for each model run.
+This guide runs a prepared experiment against native JEV and a conventional
+LLM. `banking77-choice-v0` sends 3,080 intent-routing decisions;
+`hatecheck-noul-v0` sends 3,728 binary policy decisions. Each model run also
+makes one unscored preflight request.
 
 ## 1. Hardware and network
 
@@ -118,12 +118,18 @@ authorized AWS identity.
 
 ## 4. Prepare the immutable experiment package
 
-Preparation downloads the two pinned BANKING77 source files, checks their
-SHA-256 values and row count, compiles the 3,080 Choice records, and writes an
-immutable package below `artifacts/`.
+Preparation downloads the pinned source files, checks their SHA-256 values and
+row count, compiles the experiment's decision records, and writes an immutable
+package below `artifacts/`.
 
 ```bash
 .venv/bin/jev-decision-bench prepare --experiment banking77-choice-v0
+```
+
+For the HateCheck Noul experiment, use:
+
+```bash
+.venv/bin/jev-decision-bench prepare --experiment hatecheck-noul-v0
 ```
 
 The command prints the package directory. Save it for every later stage:
@@ -245,7 +251,7 @@ when either run has no known cost.
 artifacts/
   experiments/<experiment-id>/<experiment-version>/<package-hash>/
     experiment-manifest.json
-    records.choice.jsonl
+    records.<record-set>.jsonl
     rubric.json
     source/
   runs/<run-id>/
@@ -277,10 +283,10 @@ top-level fields in the configuration. Adapters map the shared
 through without allowing it to replace the model, prompt, token limit, or
 output contract. Omit an argument that the selected model does not support.
 
-The first implementation does not run Noul candidate-membership experiments,
-Score tasks, parallel execution, or native batching. Those capabilities require
-a new experiment version and separate documentation before being used in a
-headline comparison.
+The first implementation does not run derived BANKING77 Noul membership
+experiments, Score tasks, parallel execution, or native batching. Those
+capabilities require a new experiment version and separate documentation before
+being used in a headline comparison.
 
 ## Next
 

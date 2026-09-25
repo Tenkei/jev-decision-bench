@@ -12,7 +12,7 @@ from jev_decision_bench.util import canonical_json, read_json, read_jsonl, sha25
 
 
 class _FakeAdapter:
-    adapter_version = "openai-compatible-chat-completions-choice-v2"
+    adapter_version = "openai-compatible-chat-completions-v2"
 
     def render(self, record):
         return {"fixture": record["decision_id"], "query": record["state"]["query"]}

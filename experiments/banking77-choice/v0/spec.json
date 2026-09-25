@@ -16,6 +16,7 @@
         "sha256": "53261da888122daf2d120d925458631d9619e15d82e56052e7a42e535ce32b63"
       }
     },
+    "split": "banking_data/test.csv",
     "expected_row_count": 3080
   },
   "task": {

@@ -30,6 +30,27 @@ class AdapterTests(unittest.TestCase):
             payload = adapter.render(record)
         self.assertEqual(payload["model"], "jev")
 
+    def test_typesafe_system_one_adapter_renders_and_parses_noul(self) -> None:
+        record = {
+            "task_type": "noul",
+            "state": {"text": "I hate women."},
+            "question": "Is this hateful content?",
+            "criteria": {"true": "Hateful content.", "false": "Non-hateful content."},
+        }
+        response = {"model": "jev", "usage": {"input_tokens": 1, "output_tokens": 1}, "answers": {"decision": {"type": "noul", "noul": 0.9}}}
+        with patch.dict(os.environ, {"TEST_KEY": "secret"}), patch(
+            "jev_decision_bench.adapters._post_json", return_value=response
+        ):
+            adapter = TypeSafeSystemOneAdapter(
+                {"adapter": "typesafe_system_one", "provider": "test", "endpoint": "https://example.invalid", "api_key_env": "TEST_KEY", "model_id": "jev"}
+            )
+            payload = adapter.render(record)
+            result = adapter.predict(record)
+        self.assertEqual(payload["questions"]["decision"], {"type": "noul", "instructions": "Is this hateful content?", "criteria": record["criteria"]})
+        self.assertTrue(result.answer)
+        self.assertEqual(result.positive_probability, 0.9)
+        self.assertEqual(result.selected_probability, 0.9)
+
     def test_openai_chat_completions_adapter_parses_schema_constrained_output(self) -> None:
         record = {"state": {"query": "x"}, "question": "q", "criteria": {"one": "1", "two": "2"}}
         response = {"choices": [{"message": {"content": '{"choice":"one","confidence":0.8}'}}]}
@@ -57,6 +78,27 @@ class AdapterTests(unittest.TestCase):
             result = adapter.predict(record)
         self.assertEqual(result.answer, "one")
         self.assertEqual(result.selected_probability, 0.8)
+
+    def test_openai_chat_completions_adapter_parses_noul_output(self) -> None:
+        record = {
+            "task_type": "noul",
+            "state": {"text": "I do not hate anyone."},
+            "question": "Is this hateful content?",
+            "criteria": {"true": "Hateful content.", "false": "Non-hateful content."},
+        }
+        response = {"choices": [{"message": {"content": '{"answer":false,"probability_true":0.1}'}}]}
+        with patch.dict(os.environ, {"TEST_KEY": "secret"}), patch(
+            "jev_decision_bench.adapters._post_json", return_value=response
+        ):
+            adapter = OpenAICompatibleChatCompletionsAdapter(
+                {"adapter": "openai_compatible_chat_completions", "provider": "test", "endpoint": "https://example.invalid", "api_key_env": "TEST_KEY", "model_id": "model"}
+            )
+            result = adapter.predict(record)
+            payload = adapter.render(record)
+        self.assertFalse(result.answer)
+        self.assertEqual(result.positive_probability, 0.1)
+        self.assertEqual(result.selected_probability, 0.9)
+        self.assertEqual(payload["response_format"]["json_schema"]["schema"]["properties"]["answer"], {"type": "boolean"})
 
     def test_openai_compatible_responses_adapter_parses_structured_output(self) -> None:
         record = {"state": {"query": "x"}, "question": "q", "criteria": {"one": "1", "two": "2"}}

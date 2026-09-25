@@ -6,6 +6,7 @@ identifies a separately versioned, model-independent decision workload.
 | ID | Task type | JEV task type | Dataset | Status |
 | --- | --- | --- | --- | --- |
 | `banking77-choice-v0` | Intent / queue routing | `Choice` | [BANKING77](https://github.com/PolyAI-LDN/task-specific-datasets), official test split (3,080 queries; 77 intents) | Ready for live runs — no model result recorded yet. |
+| [`hatecheck-noul-v0`](../experiments/hatecheck-noul/v0/README.md) | Policy & guardrail decisions | `Noul` | [HateCheck](https://github.com/paul-rottger/hatecheck-data), full 3,728-case functional test suite | Ready for live runs — binary hateful-content decisions with functionality slices. |
 | `banking77-noul-v0` | Intent / queue routing | `Noul` | Same frozen BANKING77 test split | Deferred — requires a frozen confusion map, compiler, adapter mode, and scorer. |
 
 New experiments are added here only after their dataset, rubric, decision
