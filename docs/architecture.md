@@ -15,6 +15,7 @@ flowchart TD
     provider["Provider API"]
     run["Run evidence (immutable)<br/>pinned route config · events · predictions"]
     policy["Evaluation policy"]
+    scorer["Scorer<br/>resolves task type and dispatches metrics"]
     evaluation["Evaluation artifact (immutable)<br/>evaluation-config.json · scores.json"]
 
     source -->|prepare| package
@@ -25,8 +26,11 @@ flowchart TD
     adapter -->|request| provider
     provider -->|response| adapter
     adapter --> run
-    run -->|score| evaluation
-    policy -->|configures| evaluation
+    run -->|saved predictions| scorer
+    package -->|records and gold labels| scorer
+    scorer -->|resolves task type| contract
+    policy -->|configures| scorer
+    scorer -->|score| evaluation
 
     classDef immutable fill:#d1fae5,stroke:#047857,color:#064e3b,stroke-width:2px
     class package,run,evaluation immutable
@@ -38,10 +42,11 @@ flowchart TD
 | --- | --- | --- |
 | Experiment source | Dataset pins, rubric, task type, preflight fixture, recommended evaluation policy | Provider prompts or credentials |
 | Prepared package | Immutable compiled records and hashes | Model route or evaluation result |
-| Task contract | Semantics of Choice, Noul, or Score: schemas, native JEV shape, parsing, validation, and scorer selection | HTTP transport or dataset download |
+| Task contract | Semantics of Choice, Noul, or Score: schemas, native JEV shape, parsing, and validation | HTTP transport, dataset download, or aggregate metrics |
 | Adapter | API transport: request serialization, authentication, response extraction, retries at the runner boundary | Whether an answer is a valid Choice or Noul decision |
 | Run | One model route answering one exact package | Scoring policy |
-| Evaluation | Offline metric policy applied to saved predictions | Provider calls or changes to run evidence |
+| Scorer | Resolves the package task type, selects task-specific metrics, and applies an evaluation policy | Provider calls or changes to run evidence |
+| Evaluation artifact | Immutable policy snapshot and metrics for one completed run | Provider calls or changes to run evidence |
 
 ## Experiment package
 
@@ -69,7 +74,9 @@ any test records.
 ## Task contracts
 
 Task contracts are registered by task type in `src/jev_decision_bench/task_contracts.py`.
-They are the only layer that interprets a decision's meaning.
+They interpret a decision's input and output meaning. The scorer resolves the
+same task type from the package and dispatches to the corresponding aggregate
+metric implementation.
 
 | Contract | Current result shape | Key validation |
 | --- | --- | --- |
