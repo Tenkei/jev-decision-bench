@@ -19,6 +19,19 @@ or metric setting from quietly changing the task after results exist.
 | **Run** | One model configuration answering every benchmark item in one frozen experiment. |
 | **Comparison** | A report that joins completed runs only on the same experiment version and record IDs. |
 
+## Fair comparison rules
+
+- JEV and every LLM receive the same state, question, label vocabulary, label
+  definitions, and allowed `other`/review path where one exists.
+- Conventional LLMs return schema-constrained JSON. Their reported
+  probabilities are recorded as **verbalized probabilities**, not treated as
+  equivalent to JEV's native decision distribution.
+- The benchmark does not grant one system tools, retrieval, demonstrations, or
+  chain-of-thought that the other system does not receive.
+- Public datasets are useful for reproducibility, but do not establish
+  contamination resistance. A future private, human-adjudicated test set will
+  supply the headline evaluation.
+
 ## Experiment Steps
 
 **Pin** names the immutable artifact that owns the step. **Configuration**
@@ -99,6 +112,18 @@ These parameters describe one system invocation. They are saved in
 | `cost_basis` | Provider-reported cost or published tariff revision | Explains how cost metrics were obtained. |
 | `model_config_sha256` | SHA-256 of the sanitized model config | Pins the exact endpoint, model, decoding, retry, and cost settings used by the run. |
 
+## Experiment metrics
+
+All experiments report the common metrics below. Decision-specific metrics are
+added rather than collapsed into a single score.
+
+| Applies to | Metrics | Purpose |
+| --- | --- | --- |
+| Every experiment | Exact-decision accuracy, valid-output rate, p50/p95 latency, cost per decision | Measures correctness, response-contract reliability, elapsed time, and reported or configured cost. Invalid output and provider failures remain separate from wrong answers. |
+| `Choice` | Macro-F1, confusion matrix | Shows performance across labels, including errors between similar classes. |
+| `Noul` | Precision, recall, AUROC, Brier score, expected calibration error, confidence-based risk/coverage | Measures binary decision quality and the usefulness of confidence. |
+| `Score` | Exact-tier accuracy, ordinal mean absolute error, calibration over rubric levels | Respects the ordered meaning of rubric levels. |
+
 ## Lifecycle
 
 An experiment moves through four stages. `prepare` produces the experiment
@@ -151,13 +176,10 @@ Every model receives the exact same benchmark items from the prepared package.
    format, and an in-domain synthetic request with a valid frozen answer
    space. A preflight failure stops the run and is recorded; it cannot alter
    the experiment package.
-3. **Render each decision.** The adapter turns a benchmark item into the
-   model's native transport:
-
-   - JEV receives a native `Choice` question.
-   - An LLM receives the same state, rubric, label order, and a strict JSON
-     schema. It may not receive demonstrations, tools, retrieval, or extra
-     context unavailable to JEV.
+3. **Render each decision.** The adapter turns the shared benchmark item into
+   the model's native transport while preserving the fair-comparison rules:
+   JEV receives its native decision request and an LLM receives the same
+   bounded task through a strict JSON schema.
 
 4. **Execute and append evidence.** Store every raw request, raw response,
    provider usage record, wall-clock duration, and retry/error event under a

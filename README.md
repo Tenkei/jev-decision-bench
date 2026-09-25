@@ -11,6 +11,17 @@ The central question is:
 > reliably, quickly, and cheaply can JEV and conventional LLMs make a
 > code-consumable decision?
 
+## Project structure
+
+```text
+configs/       Tracked, editable model-route configurations; API keys stay in the environment.
+experiments/   Versioned experiment specifications, rubrics, and source-data pins.
+src/           Benchmark preparation, adapters, execution, scoring, and comparison code.
+docs/          Methodology, experiment index, run guide, and provider setup guides.
+artifacts/     Generated experiment packages, runs, scores, comparisons, and logs.
+tests/         Contract and regression tests for the benchmark implementation.
+```
+
 ## Methodology
 
 Most LLM evaluations begin with a benchmark designed for general-purpose
@@ -62,65 +73,8 @@ benchmark design but no dataset has been adopted yet.
 | Generic requirement verification | `Noul` / `Choice` | TBD | Determine whether any artifact or state satisfies a named, explicit requirement, independent of its domain. | Backlog — dataset selection required. |
 | OOD uncertainty & abstention | All three | TBD | Measure whether confidence falls and review is selected when evidence or policy is missing. | Backlog — dataset selection required. |
 
-BANKING77 has no intrinsic ordinal label, so it is intentionally not used for a
-`Score` experiment. See [Experiment index](docs/index.md) for the exact v0
-contracts and frozen-protocol requirements. See [Methodology](docs/methodology.md)
-for the implementation lifecycle and artifact contracts. See
-[Running experiments](docs/running-experiments.md) for the environment setup and
-step-by-step runbook.
-
-## Fair comparison rules
-
-- JEV and every LLM receive the same state, question, label vocabulary, label
-  definitions, and allowed `other`/review path where one exists.
-- Conventional LLMs return schema-constrained JSON. Their reported
-  probabilities are recorded as **verbalized probabilities**, not treated as
-  equivalent to JEV's native decision distribution.
-- The benchmark does not grant one system tools, retrieval, demonstrations, or
-  chain-of-thought that the other system does not receive.
-- Dataset versions, prompts, label definitions, model revisions, parameters,
-  raw responses, timing, and costs are recorded in a run manifest.
-- Public datasets are useful for reproducibility, but do not establish
-  contamination resistance. A future private, human-adjudicated test set will
-  supply the headline evaluation.
-
-## Metrics
-
-All experiments report exact-decision accuracy, valid-output rate, p50/p95
-latency, and cost per decision. Metrics appropriate to the decision geometry
-are added rather than collapsed into a single score:
-
-- **Choice:** macro-F1 and confusion matrix.
-- **Noul:** precision, recall, AUROC, Brier score, expected calibration error,
-  and confidence-based risk/coverage.
-- **Score:** exact-tier accuracy, ordinal mean absolute error, and calibration
-  over rubric levels.
-
-## Status
-
-The repository currently documents the benchmark contract and planned first
-experiments. The Choice-only BANKING77 implementation can prepare a pinned
-package, call configured providers, score saved evidence, and compare runs; no
-live model result has been published.
-
-## Choice-only BANKING77 commands
-
-```bash
-PYTHONPATH=src .venv/bin/python -m jev_decision_bench.cli prepare \
-  --experiment banking77-choice-v0
-
-PYTHONPATH=src .venv/bin/python -m jev_decision_bench.cli run \
-  --package artifacts/experiments/banking77-choice/v0/<package-hash> \
-  --model-config configs/typesafe-direct.json
-
-PYTHONPATH=src .venv/bin/python -m jev_decision_bench.cli score \
-  --package artifacts/experiments/banking77-choice/v0/<package-hash> \
-  --run artifacts/runs/<run-id>
-```
-
-Select a tracked model configuration, add only the provider details required
-for that route, and set the API-key environment variable named by `api_key_env`.
-Configuration files never contain API keys.
+See the [Experiment index](docs/index.md) for each experiment's dataset,
+decision contract, and implementation status.
 
 ## Documentation
 
