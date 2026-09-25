@@ -4,7 +4,8 @@ This document defines how an experiment is prepared, run, and compared. Its
 main rule is simple:
 
 > An experiment is an immutable decision package. A model run is one
-> repeatable attempt by one configured system to answer that package.
+> repeatable attempt by one configured system to answer that package. An
+> evaluation is a separately versioned interpretation of saved predictions.
 
 This separation prevents a model-specific prompt, label map, negative sample,
 or metric setting from quietly changing the task after results exist.
@@ -13,10 +14,11 @@ or metric setting from quietly changing the task after results exist.
 
 | Term | Meaning |
 | --- | --- |
-| **Experiment** | A versioned benchmark condition: dataset split, benchmark items, rubric, and scoring rules. Example: `banking77-choice-v0`. |
+| **Experiment** | A versioned benchmark condition: dataset split, benchmark items, rubric, task contract, and preflight fixture. Example: `banking77-choice-v0`. |
 | **Benchmark item** | One fixed state, question, allowed answers, gold answer, and evaluation metadata. It is shared by every model. |
 | **Model configuration** | A provider, model revision, adapter, decoding settings, endpoint, and cost configuration. |
 | **Run** | One model configuration answering every benchmark item in one frozen experiment. |
+| **Evaluation** | A versioned scoring policy applied offline to one completed run. A run may have multiple evaluations. |
 | **Comparison** | A report that joins completed runs only on the same experiment version and record IDs. |
 
 ## Fair comparison rules
@@ -45,11 +47,11 @@ model run, or once for a comparison.
 | Write label definitions and answer rubric | Experiment version | Per experiment | Fixed rubric version and hash |
 | Compile benchmark items | Experiment version | Per experiment | Model-independent Choice items in v0 |
 | Generate Noul negatives | Deferred Noul experiment | Per experiment | Frozen candidate pairs, sampler version, seed, and hash |
-| Freeze evaluator and metric settings | Experiment version | Per experiment | Evaluator version, threshold policy, scoring config |
+| Recommend an evaluation policy | Experiment source | Per experiment | Editable default evaluation configuration; not part of the package hash |
 | Render a benchmark item to a provider request | Model run, referencing an experiment version | Per model | Native JEV request or LLM JSON-schema request |
 | Call the provider and record evidence | Model run, referencing an experiment version | Per model | Raw request/response, usage, timing, errors |
 | Validate model results | Experiment version for rules; model run for result | Per model | Standardized results or explicit failures |
-| Score a run | Experiment version for evaluator; model run for scores | Per model | Per-item scores and aggregate metrics |
+| Score a completed run | Evaluation configuration and saved run evidence | Per evaluation | Immutable evaluation configuration snapshot and aggregate scores |
 | Compare runs | Comparison manifest, referencing experiment and run IDs | Per comparison | Matched model table and report |
 
 ## Experiment parameters
@@ -67,15 +69,14 @@ records are evaluated. They are saved in `experiment-manifest.json`.
 | --- | --- | --- |
 | `experiment_id` | `banking77-choice` | Names the benchmark condition independent of its revision. |
 | `experiment_version` | `v0` | Identifies one reproducible definition of the BANKING77 experiment. |
-| `pipeline_version` | Source-control revision of this benchmark | Identifies the preparation, validation, and evaluation code. |
+| `pipeline_version` | Source-control revision of this benchmark | Identifies the preparation and validation code. |
 | `normalizer_version` | `banking77-normalizer@…` | Defines stable source IDs and permitted input normalization. |
 | `rubric_version` | `banking77-intents@…` | Defines the 77 fixed intent IDs and their reviewed definitions. |
 | `record_sets` | `choice` | Names the decision views compiled from the source rows. |
 | `negative_sampler_version` | `not_applicable` | Reserved for the deferred Noul experiment. |
 | `decision_contract_version` | Canonical Choice record schema | Defines the model-independent state, question, criteria, and gold answer. |
-| `validation_contract_version` | Allowed labels, probability requirements, failure behavior | Defines how provider output becomes a valid prediction or an explicit failure. |
-| `evaluator_version` | `banking77-evaluator@…` | Defines metrics, aggregation, and handling of invalid or missing results. |
-| `threshold_policy_id` | Development-split policy or `not_applicable` | Separates any operating threshold from test evaluation. |
+| `task.contract_version` | Allowed labels, probability requirements, failure behavior | Defines how provider output becomes a valid prediction or an explicit failure. |
+| `preflight_sha256` | SHA-256 over the compiled synthetic request | Pins the unscored route-and-shape check used by every new run. |
 | `experiment_package_hash` | SHA-256 over manifest and compiled records | Identifies the complete experiment package used by every run. |
 
 ### Dataset parameters
@@ -112,6 +113,20 @@ These parameters describe one system invocation. They are saved in
 | `cost_basis` | Provider-reported cost or published tariff revision | Explains how cost metrics were obtained. |
 | `model_config_sha256` | SHA-256 of the sanitized model config | Pins the exact endpoint, model, decoding, retry, and cost settings used by the run. |
 
+### Evaluation parameters
+
+Evaluation settings are not part of the prepared package or run. Each experiment
+ships a recommended `default-evaluation.json`, but `score --evaluation` may use
+another compatible policy to re-evaluate the same saved predictions.
+
+| Parameter | Purpose |
+| --- | --- |
+| `evaluation_id` / `evaluation_version` | Names one scoring-policy revision. |
+| `task_type` | Prevents applying a Choice policy to Noul evidence, or vice versa. |
+| `positive_threshold` | For Noul, derives the evaluated binary answer from saved true probabilities. |
+| `calibration_bins` | Sets the number of ECE bins. |
+| `evaluation_config_sha256` | Identifies the exact policy snapshot written with scores. |
+
 ## Experiment metrics
 
 All experiments report the common metrics below. Decision-specific metrics are
@@ -136,9 +151,10 @@ prepare experiment once
         ▼
 immutable experiment package
         │
-        ├── run JEV ──────────────► validate ─► score ─┐
-        ├── run LLM A ────────────► validate ─► score ─┼──► compare
-        └── run LLM B ────────────► validate ─► score ─┘
+        ├── run JEV ──────────────► validate ─┐
+        ├── run LLM A ────────────► validate ─┼──► evaluate ─► compare
+        └── run LLM B ────────────► validate ─┘     ▲
+                                                evaluation policy
 ```
 
 ### 1. Prepare an experiment
@@ -153,15 +169,13 @@ Preparation produces an experiment package before any model is called.
    changed after a run.
 3. **Freeze the rubric.** Map every label to a reviewed definition and fix its
    order. For ordinal `Score` tasks, also fix the level order and its meaning.
-4. **Compile Choice benchmark items.** An item contains the state,
+4. **Compile task benchmark items.** An item contains the state,
    question, typed answer space, gold answer, and source reference. It contains
    no provider-specific prompt syntax.
-5. **Reserve derived records for the next milestone.** The Choice-only v0
-   package does not generate Noul candidate pairs or a negative sampler.
-6. **Freeze scoring.** Pin the evaluator version, metric definitions, failure
-   behavior, and any threshold selected from a development split. Test records
-   never choose a threshold.
-7. **Write `experiment-manifest.json`.** Include hashes for every artifact.
+5. **Compile the preflight fixture.** The experiment supplies an in-domain,
+   unscored state used only to prove the selected route can return a valid
+   response shape.
+6. **Write `experiment-manifest.json`.** Include hashes for every package artifact.
    This manifest is immutable once the first model run starts; a change creates
    a new experiment version.
 
@@ -172,10 +186,9 @@ Every model receives the exact same benchmark items from the prepared package.
 1. **Resolve the model configuration.** Record provider, endpoint, model and
    revision, adapter version, temperature, seed when supported, token limit,
    concurrency, timeout, retry policy, and cost basis.
-2. **Preflight without test scoring.** Verify credentials, supported response
-   format, and an in-domain synthetic request with a valid frozen answer
-   space. A preflight failure stops the run and is recorded; it cannot alter
-   the experiment package.
+2. **Preflight without test scoring.** Execute the package's pinned synthetic
+   fixture to verify credentials and response shape. A preflight failure stops
+   the run and is recorded; it cannot alter the experiment package.
 3. **Render each decision.** The adapter turns the shared benchmark item into
    the model's native transport while preserving the fair-comparison rules:
    JEV receives its native decision request and an LLM receives the same
@@ -196,11 +209,11 @@ Every model receives the exact same benchmark items from the prepared package.
 
 ### 3. Score and compare — repeatable from saved evidence
 
-1. **Score one run.** Join model results to the gold answers in benchmark
-   items by stable decision ID. Apply the frozen evaluator without calling a
-   provider.
-2. **Publish per-run artifacts.** Emit per-item scores, aggregate metrics,
-   calibration data, confusion matrices, costs, and latency summaries as JSON.
+1. **Evaluate one run.** Join model results to the gold answers in benchmark
+   items by stable decision ID. Apply a chosen compatible evaluation policy
+   without calling a provider.
+2. **Publish evaluation artifacts.** Snapshot the policy and emit aggregate
+   metrics, calibration data, confusion matrices, costs, and latency summaries as JSON.
 3. **Compare runs.** Require the same experiment-manifest hash and an explicit
    baseline. Preserve absolute metrics and add deltas or ratios relative to the
    baseline; omissions and failures remain separate from accuracy.

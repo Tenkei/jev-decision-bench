@@ -10,7 +10,7 @@ identifies a separately versioned, model-independent decision workload.
 | `banking77-noul-v0` | Intent / queue routing | `Noul` | Same frozen BANKING77 test split | Deferred — requires a frozen confusion map, compiler, adapter mode, and scorer. |
 
 New experiments are added here only after their dataset, rubric, decision
-records, and evaluator have been pinned.
+records, preflight fixture, and recommended evaluation policy are defined.
 
 ## Next
 

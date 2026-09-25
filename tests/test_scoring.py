@@ -1,11 +1,24 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from jev_decision_bench.scoring import score
 from jev_decision_bench.util import write_json, write_jsonl
+
+
+def _write_evaluation(path: Path, task_type: str) -> None:
+    write_json(
+        path,
+        {
+            "evaluation_id": f"fixture-{task_type}",
+            "evaluation_version": "v0",
+            "task_type": task_type,
+            "calibration_bins": 10,
+        },
+    )
 
 
 class ScoringTests(unittest.TestCase):
@@ -32,12 +45,16 @@ class ScoringTests(unittest.TestCase):
                     {"decision_id": "c", "status": "provider_error", "answer": None, "selected_probability": None, "timing_ms": 30, "cost_usd": None},
                 ],
             )
-            metrics = score(run, package)
+            evaluation = root / "choice-evaluation.json"
+            _write_evaluation(evaluation, "choice")
+            output_dir, metrics = score(run, package, evaluation)
             self.assertEqual(metrics["valid_predictions"], 2)
             self.assertAlmostEqual(metrics["coverage"], 2 / 3)
             self.assertAlmostEqual(metrics["accuracy_on_valid"], 0.5)
             self.assertEqual(metrics["status_counts"], {"valid": 2, "provider_error": 1})
-            self.assertTrue((run / "evaluation.json").exists())
+            self.assertTrue((output_dir / "scores.json").exists())
+            self.assertTrue((output_dir / "evaluation-config.json").exists())
+            self.assertFalse((run / "evaluation.json").exists())
             self.assertFalse((run / "metrics.json").exists())
             self.assertFalse((run / "report.md").exists())
 
@@ -64,10 +81,22 @@ class ScoringTests(unittest.TestCase):
                     {"decision_id": "b", "status": "valid", "answer": False, "selected_probability": 0.8, "positive_probability": 0.2, "timing_ms": 20, "cost_usd": None},
                 ],
             )
-            metrics = score(run, package)
+            evaluation = root / "noul-evaluation.json"
+            _write_evaluation(evaluation, "noul")
+            output_dir, metrics = score(run, package, evaluation)
             self.assertAlmostEqual(metrics["accuracy_on_valid"], 1.0)
             self.assertAlmostEqual(metrics["precision_on_valid"], 1.0)
             self.assertAlmostEqual(metrics["recall_on_valid"], 1.0)
             self.assertAlmostEqual(metrics["auroc_on_valid"], 1.0)
             self.assertAlmostEqual(metrics["true_probability_brier_on_valid"], 0.025)
             self.assertEqual(metrics["functionality_slices"]["threat"]["total_records"], 1)
+            self.assertTrue((output_dir / "scores.json").exists())
+
+            strict_evaluation = root / "noul-strict-evaluation.json"
+            _write_evaluation(strict_evaluation, "noul")
+            strict = json.loads(strict_evaluation.read_text(encoding="utf-8"))
+            strict.update({"evaluation_id": "fixture-noul-strict", "positive_threshold": 0.95})
+            write_json(strict_evaluation, strict)
+            strict_output, strict_metrics = score(run, package, strict_evaluation)
+            self.assertNotEqual(output_dir, strict_output)
+            self.assertAlmostEqual(strict_metrics["accuracy_on_valid"], 0.5)

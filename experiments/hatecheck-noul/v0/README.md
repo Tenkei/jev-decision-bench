@@ -32,7 +32,9 @@ JEV returns its native Noul probability of `true`. Conventional LLMs return a
 schema-constrained boolean `answer` and `probability_true`; the runner rejects
 an answer that does not agree with the frozen 0.5 threshold. Scoring reports
 accuracy, precision, recall, AUROC, Brier score, ECE, a binary confusion
-matrix, and per-functionality accuracy.
+matrix, and per-functionality accuracy. `default-evaluation.json` is the
+recommended scoring policy; it can be replaced when re-evaluating saved
+probabilities without re-running the model.
 
 ## Content notice
 

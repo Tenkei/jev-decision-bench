@@ -7,10 +7,16 @@ import subprocess
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+from .task_contracts import contract_for_record, get_task_contract
 from .util import canonical_json, order_fields, sha256_bytes, sha256_file, write_json, write_jsonl
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+_EXPERIMENT_DIRECTORIES = {
+    "banking77-choice-v0": ROOT / "experiments" / "banking77-choice" / "v0",
+    "hatecheck-noul-v0": ROOT / "experiments" / "hatecheck-noul" / "v0",
+}
 
 
 def _download(url: str) -> bytes:
@@ -21,21 +27,26 @@ def _download(url: str) -> bytes:
 
 def _pipeline_version() -> str:
     try:
-        return subprocess.check_output(
+        revision = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, stderr=subprocess.DEVNULL
         ).strip()
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        ).stdout
+        return revision if not dirty else f"{revision}-dirty"
     except (OSError, subprocess.CalledProcessError):
         return "working-tree"
 
 
 def _load_spec(experiment: str) -> tuple[dict, dict]:
-    locations = {
-        "banking77-choice-v0": ROOT / "experiments" / "banking77-choice" / "v0",
-        "hatecheck-noul-v0": ROOT / "experiments" / "hatecheck-noul" / "v0",
-    }
-    if experiment not in locations:
+    directory = _EXPERIMENT_DIRECTORIES.get(experiment)
+    if directory is None:
         raise ValueError(f"Unsupported experiment: {experiment}")
-    directory = locations[experiment]
     spec = json.loads((directory / "spec.json").read_text(encoding="utf-8"))
     rubric = json.loads((directory / spec["task"]["rubric_path"]).read_text(encoding="utf-8"))
     return spec, rubric
@@ -114,6 +125,12 @@ def _compile_hatecheck(spec: dict, rubric: dict, source_bytes: dict[str, bytes])
     ]
 
 
+_EXPERIMENT_COMPILERS = {
+    "banking77-choice": _compile_banking77,
+    "hatecheck-noul": _compile_hatecheck,
+}
+
+
 def prepare(experiment: str, artifacts_root: Path, downloader=_download) -> Path:
     """Create an immutable experiment package and return its path."""
     spec, rubric = _load_spec(experiment)
@@ -126,18 +143,26 @@ def prepare(experiment: str, artifacts_root: Path, downloader=_download) -> Path
             raise ValueError(f"Hash mismatch for {name}: expected {file_spec['sha256']}, got {actual_hash}")
         source_bytes[name] = content
 
-    compilers = {
-        "banking77-choice": _compile_banking77,
-        "hatecheck-noul": _compile_hatecheck,
-    }
-    records = compilers[spec["experiment_id"]](spec, rubric, source_bytes)
+    try:
+        compiler = _EXPERIMENT_COMPILERS[spec["experiment_id"]]
+    except KeyError as error:
+        raise ValueError(f"No compiler registered for experiment: {spec['experiment_id']}") from error
+    contract = get_task_contract(spec["task"]["task_type"])
+    if spec["task"]["record_set"] != contract.record_set:
+        raise ValueError("Experiment task record_set does not match its task contract")
+    records = compiler(spec, rubric, source_bytes)
+    if any(contract_for_record(record).task_type != contract.task_type for record in records):
+        raise ValueError("Experiment compiler emitted records for a different task contract")
+    preflight = contract.preflight_record(spec["task"], rubric["criteria"])
     records_bytes = "".join(
         json.dumps(record, ensure_ascii=False, sort_keys=False, separators=(",", ":")) + "\n" for record in records
     ).encode("utf-8")
+    rubric_bytes = canonical_json(rubric).encode("utf-8")
+    preflight_bytes = canonical_json(preflight).encode("utf-8")
     base_manifest = {
         "experiment_id": spec["experiment_id"],
         "experiment_version": spec["experiment_version"],
-        "package_format_version": "pretty-json-v2",
+        "package_format_version": "pretty-json-v3",
         "pipeline_version": _pipeline_version(),
         "dataset": {
             "name": dataset["name"],
@@ -149,13 +174,17 @@ def prepare(experiment: str, artifacts_root: Path, downloader=_download) -> Path
             "file_hashes": {name: sha256_bytes(content) for name, content in source_bytes.items()},
         },
         "rubric_version": rubric["rubric_version"],
+        "rubric_sha256": sha256_bytes(rubric_bytes),
+        "task": {
+            "task_type": contract.task_type,
+            "record_set": contract.record_set,
+            "contract_version": contract.validation_contract_version,
+        },
         "record_sets": [spec["task"]["record_set"]],
-        "validation_contract_version": spec["validation_contract_version"],
-        "evaluator_version": spec["evaluator_version"],
-        "threshold_policy_id": spec["threshold_policy_id"],
         "records_sha256": sha256_bytes(records_bytes),
+        "preflight_sha256": sha256_bytes(preflight_bytes),
     }
-    package_hash = sha256_bytes(canonical_json(base_manifest).encode("utf-8") + records_bytes)
+    package_hash = sha256_bytes(canonical_json(base_manifest).encode("utf-8") + rubric_bytes + records_bytes + preflight_bytes)
     manifest = order_fields(
         {**base_manifest, "experiment_package_hash": package_hash},
         (
@@ -166,11 +195,11 @@ def prepare(experiment: str, artifacts_root: Path, downloader=_download) -> Path
             "pipeline_version",
             "dataset",
             "rubric_version",
+            "rubric_sha256",
+            "task",
             "record_sets",
-            "validation_contract_version",
-            "evaluator_version",
-            "threshold_policy_id",
             "records_sha256",
+            "preflight_sha256",
         ),
     )
     package_dir = artifacts_root / "experiments" / spec["experiment_id"] / spec["experiment_version"] / package_hash
@@ -182,6 +211,7 @@ def prepare(experiment: str, artifacts_root: Path, downloader=_download) -> Path
     for name, content in source_bytes.items():
         (source_dir / name).write_bytes(content)
     write_json(package_dir / "rubric.json", rubric)
+    write_json(package_dir / "preflight.json", preflight)
     records_path = package_dir / f"records.{spec['task']['record_set']}.jsonl"
     write_jsonl(records_path, records, sort_keys=False)
     if sha256_file(records_path) != manifest["records_sha256"]:

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .adapters import AdapterError, adapter_version, build_adapter, sleep_before_retry
+from .task_contracts import NormalizedDecision, contract_for_manifest, contract_for_record
 from .util import append_jsonl, canonical_json, order_fields, read_json, read_jsonl, sha256_bytes, write_json
 
 
@@ -31,25 +32,21 @@ def _run_id(manifest: dict[str, Any], config: dict[str, Any]) -> str:
 
 
 def _records_path(package_dir: Path, manifest: dict[str, Any]) -> Path:
-    record_sets = manifest.get("record_sets", ["choice"])
-    if not isinstance(record_sets, list) or len(record_sets) != 1 or record_sets[0] not in {"choice", "noul"}:
-        raise ValueError("Experiment package must contain exactly one supported record set")
-    return package_dir / f"records.{record_sets[0]}.jsonl"
+    return package_dir / f"records.{contract_for_manifest(manifest).record_set}.jsonl"
 
 
-def _validate_prediction(record: dict[str, Any], answer: str | bool, probability: float, positive_probability: float | None) -> str | None:
-    if record.get("task_type", "choice") == "choice" and answer not in record["criteria"]:
-        return f"choice is not in frozen rubric: {answer}"
-    if record.get("task_type") == "noul":
-        if not isinstance(answer, bool) or not isinstance(positive_probability, (int, float)):
-            return "Noul output requires a boolean answer and true probability"
-        if not 0 <= positive_probability <= 1:
-            return f"true probability must be in [0, 1], got {positive_probability}"
-        if answer != (positive_probability >= 0.5):
-            return "Noul answer must match the true-probability threshold"
-    if not 0 <= probability <= 1:
-        return f"selected probability must be in [0, 1], got {probability}"
-    return None
+def _preflight_record(package_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    path = package_dir / "preflight.json"
+    if not path.is_file():
+        raise ValueError("Experiment package is missing preflight.json; prepare the experiment again")
+    record = read_json(path)
+    if contract_for_record(record).task_type != contract_for_manifest(manifest).task_type:
+        raise ValueError("Preflight fixture does not match the package task contract")
+    actual_hash = sha256_bytes(canonical_json(record).encode("utf-8"))
+    expected_hash = manifest.get("preflight_sha256")
+    if expected_hash is not None and actual_hash != expected_hash:
+        raise ValueError("Preflight fixture hash does not match the experiment manifest")
+    return record
 
 
 def _safe_event_request(record: dict[str, Any], config: dict[str, Any], adapter) -> dict[str, Any]:
@@ -98,6 +95,7 @@ def _ordered_run_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
             "experiment_id",
             "experiment_version",
             "experiment_package_hash",
+            "task_type",
             "adapter_version",
             "model_config",
             "model_config_sha256",
@@ -243,6 +241,11 @@ def run(
 ) -> Path:
     manifest = read_json(package_dir / "experiment-manifest.json")
     records = read_jsonl(_records_path(package_dir, manifest))
+    if not records:
+        raise ValueError("Experiment package has no decision records")
+    contract = contract_for_manifest(manifest)
+    if any(contract_for_record(record).task_type != contract.task_type for record in records):
+        raise ValueError("Experiment records do not match the package task contract")
     config = read_json(model_config_path)
     pinned_config = _pinned_model_config(config)
     model_config_sha256 = sha256_bytes(canonical_json(pinned_config).encode("utf-8"))
@@ -280,6 +283,7 @@ def run(
             "experiment_package_hash": manifest["experiment_package_hash"],
             "experiment_id": manifest["experiment_id"],
             "experiment_version": manifest["experiment_version"],
+            "task_type": contract.task_type,
             "model_config": pinned_config,
             "model_config_sha256": model_config_sha256,
             "adapter_version": renderer_version,
@@ -293,22 +297,9 @@ def run(
     events_path = run_dir / "events.jsonl"
     predictions_path = run_dir / "predictions.jsonl"
 
-    # An in-domain synthetic request validates credentials and response shape
-    # without exposing or scoring a package record.  It must have a clear
-    # answer from the frozen rubric; an intentionally unrelated query can
-    # cause a well-behaved bounded classifier to search for a nonexistent
-    # "unknown" label instead of testing the response contract.
-    preflight_state = {"query": "My physical card has not arrived."}
-    task_type = records[0].get("task_type", "choice")
-    if task_type == "noul":
-        preflight_state = {"text": "I hate women."}
-    preflight_record = {
-        "decision_id": "preflight",
-        "state": preflight_state,
-        "task_type": task_type,
-        "question": records[0]["question"],
-        "criteria": records[0]["criteria"],
-    }
+    # The experiment pins an in-domain synthetic request. It validates route
+    # credentials and response shape without exposing or scoring a test item.
+    preflight_record = _preflight_record(package_dir, manifest)
     if not preflight_succeeded:
         try:
             started = time.monotonic_ns()
@@ -353,11 +344,13 @@ def run(
         try:
             result = _call_with_retries(adapter, record, int(config.get("max_retries", 2)))
             latency_ms = (time.monotonic_ns() - started) / 1_000_000
-            validation_error = _validate_prediction(
+            validation_error = contract_for_record(record).validate_prediction(
                 record,
-                result.answer,
-                result.selected_probability,
-                result.positive_probability,
+                NormalizedDecision(
+                    result.answer,
+                    result.selected_probability,
+                    result.positive_probability,
+                ),
             )
             status = "invalid" if validation_error else "valid"
             prediction = {

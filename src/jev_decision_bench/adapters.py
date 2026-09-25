@@ -10,6 +10,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+from .task_contracts import TaskOutputError, contract_for_record
 from .util import canonical_json
 
 
@@ -99,62 +100,25 @@ class TypeSafeSystemOneAdapter(DecisionAdapter):
     adapter_version = "typesafe-system-one-v1"
 
     def render(self, record: dict[str, Any]) -> dict[str, Any]:
-        if record.get("task_type", "choice") == "noul":
-            return {
-                "model": self.config["model_id"],
-                "state": record["state"],
-                "questions": {
-                    "decision": {
-                        "type": "noul",
-                        "instructions": record["question"],
-                        "criteria": record["criteria"],
-                    }
-                },
-            }
+        question_name, question = contract_for_record(record).native_question(record)
         return {
             "model": self.config["model_id"],
             "state": record["state"],
-            "questions": {
-                "intent": {
-                    "type": "choice",
-                    "instructions": record["question"],
-                    "criteria": record["criteria"],
-                }
-            },
+            "questions": {question_name: question},
         }
 
     def predict(self, record: dict[str, Any]) -> AdapterResult:
         response = self._post(self.render(record))
-        answers = response.get("answers") or response.get("choices")
-        answer = answers.get("decision" if record.get("task_type", "choice") == "noul" else "intent") if isinstance(answers, dict) else None
-        if not isinstance(answer, dict):
-            raise AdapterError("TypeSafe response lacks the requested answer")
-        if record.get("task_type", "choice") == "noul":
-            probability_true = answer.get("noul")
-            if not isinstance(probability_true, (int, float)):
-                raise AdapterError("TypeSafe response lacks a Noul probability")
-            positive_probability = float(probability_true)
-            return AdapterResult(
-                answer=positive_probability >= 0.5,
-                selected_probability=max(positive_probability, 1 - positive_probability),
-                positive_probability=positive_probability,
-                model_revision=response.get("model") or self.config.get("model_revision"),
-                provider_usage=response.get("usage") if isinstance(response.get("usage"), dict) else None,
-                cost_usd=None,
-                raw_response=response,
-            )
-        choice = answer.get("choice")
-        probabilities = answer.get("probabilities")
-        if not isinstance(choice, str) or not isinstance(probabilities, dict):
-            raise AdapterError("TypeSafe response lacks choice probabilities")
-        probability = probabilities.get(choice)
-        if not isinstance(probability, (int, float)):
-            raise AdapterError("TypeSafe response lacks probability for selected choice")
+        try:
+            decision = contract_for_record(record).parse_native_output(response, record)
+        except TaskOutputError as error:
+            raise AdapterError(str(error), invalid_output=True, body=canonical_json(response)) from error
         usage = response.get("usage") if isinstance(response.get("usage"), dict) else None
         cost = usage.get("cost") if usage else None
         return AdapterResult(
-            answer=choice,
-            selected_probability=float(probability),
+            answer=decision.answer,
+            selected_probability=decision.selected_probability,
+            positive_probability=decision.positive_probability,
             model_revision=response.get("model") or self.config.get("model_revision"),
             provider_usage=usage,
             cost_usd=float(cost) if isinstance(cost, (int, float)) else None,
@@ -162,90 +126,12 @@ class TypeSafeSystemOneAdapter(DecisionAdapter):
         )
 
 
-def _choice_schema(record: dict[str, Any]) -> dict[str, Any]:
-    labels = list(record["criteria"])
-    return {
-        "name": "banking77_choice",
-        "strict": True,
-        "schema": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {
-                "choice": {"type": "string", "enum": labels},
-                "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-            },
-            "required": ["choice", "confidence"],
-        },
-    }
-
-
-def _choice_instructions() -> str:
-    return (
-        "Make one bounded classification decision. Return exactly one JSON object and nothing else. "
-        "It must contain only `choice` (an exact key from the supplied criteria) and `confidence` "
-        "(a number from 0 to 1). Do not return reasoning, tags, prose, Markdown, an `intent` "
-        "field, an unknown label, or any other field."
-    )
-
-
-def _choice_input(record: dict[str, Any]) -> str:
-    return canonical_json({"state": record["state"], "question": record["question"], "criteria": record["criteria"]})
-
-
-def _noul_schema(record: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "name": "bounded_noul",
-        "strict": True,
-        "schema": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {
-                "answer": {"type": "boolean"},
-                "probability_true": {"type": "number", "minimum": 0, "maximum": 1},
-            },
-            "required": ["answer", "probability_true"],
-        },
-    }
-
-
-def _noul_instructions() -> str:
-    return (
-        "Make one bounded true-or-false decision. Return exactly one JSON object and nothing else. "
-        "It must contain only `answer` (a boolean) and `probability_true` (the probability from 0 to 1 "
-        "that the answer is true). `answer` must be true when `probability_true` is at least 0.5, "
-        "otherwise false. Do not return reasoning, tags, prose, Markdown, or any other field."
-    )
-
-
-def _decision_schema(record: dict[str, Any]) -> dict[str, Any]:
-    if record.get("task_type", "choice") == "choice":
-        return _choice_schema(record)
-    if record.get("task_type") == "noul":
-        return _noul_schema(record)
-    raise ValueError(f"Unsupported task type: {record.get('task_type')}")
-
-
-def _decision_instructions(record: dict[str, Any]) -> str:
-    if record.get("task_type", "choice") == "choice":
-        return _choice_instructions()
-    if record.get("task_type") == "noul":
-        return _noul_instructions()
-    raise ValueError(f"Unsupported task type: {record.get('task_type')}")
-
-
-def _parsed_llm_decision(record: dict[str, Any], parsed: dict[str, Any]) -> tuple[str | bool, float, float | None]:
-    if record.get("task_type", "choice") == "choice":
-        choice, confidence = parsed.get("choice"), parsed.get("confidence")
-        if not isinstance(choice, str) or not isinstance(confidence, (int, float)):
-            raise AdapterError("LLM response lacks choice or confidence", invalid_output=True)
-        return choice, float(confidence), None
-    answer, probability_true = parsed.get("answer"), parsed.get("probability_true")
-    if not isinstance(answer, bool) or not isinstance(probability_true, (int, float)):
-        raise AdapterError("LLM response lacks a boolean answer or true probability", invalid_output=True)
-    probability_true = float(probability_true)
-    if not 0 <= probability_true <= 1 or answer != (probability_true >= 0.5):
-        raise AdapterError("LLM Noul response has inconsistent answer or true probability", invalid_output=True)
-    return answer, max(probability_true, 1 - probability_true), probability_true
+def _normalized_llm_result(record: dict[str, Any], parsed: dict[str, Any]) -> tuple[str | bool, float, float | None]:
+    try:
+        decision = contract_for_record(record).parse_llm_output(parsed)
+    except TaskOutputError as error:
+        raise AdapterError(str(error), invalid_output=True) from error
+    return decision.answer, decision.selected_probability, decision.positive_probability
 
 
 def _model_arguments(config: dict[str, Any], reserved: set[str]) -> dict[str, Any]:
@@ -263,18 +149,19 @@ class OpenAICompatibleChatCompletionsAdapter(DecisionAdapter):
     adapter_version = "openai-compatible-chat-completions-v2"
 
     def render(self, record: dict[str, Any]) -> dict[str, Any]:
-        schema = _decision_schema(record)
+        contract = contract_for_record(record)
+        schema = contract.llm_schema(record)
         payload: dict[str, Any] = {
             "model": self.config["model_id"],
             "max_tokens": self.config.get("max_tokens", 128),
             "messages": [
                 {
                     "role": "system",
-                    "content": _decision_instructions(record),
+                    "content": contract.llm_instructions(),
                 },
                 {
                     "role": "user",
-                    "content": _choice_input(record),
+                    "content": contract.llm_input(record),
                 },
             ],
         }
@@ -305,7 +192,7 @@ class OpenAICompatibleChatCompletionsAdapter(DecisionAdapter):
                 body=canonical_json(response),
             )
         try:
-            answer, selected_probability, positive_probability = _parsed_llm_decision(record, parsed)
+            answer, selected_probability, positive_probability = _normalized_llm_result(record, parsed)
         except AdapterError as error:
             raise AdapterError(str(error), invalid_output=True, body=canonical_json(response)) from error
         usage = response.get("usage") if isinstance(response.get("usage"), dict) else None
@@ -326,17 +213,18 @@ class OpenAICompatibleResponsesAdapter(DecisionAdapter):
     adapter_version = "openai-compatible-responses-v1"
 
     def render(self, record: dict[str, Any]) -> dict[str, Any]:
+        contract = contract_for_record(record)
         payload: dict[str, Any] = {
             "model": self.config["model_id"],
             "max_output_tokens": self.config.get("max_output_tokens", self.config.get("max_tokens", 128)),
             "input": [
-                {"role": "system", "content": _decision_instructions(record)},
-                {"role": "user", "content": _choice_input(record)},
+                {"role": "system", "content": contract.llm_instructions()},
+                {"role": "user", "content": contract.llm_input(record)},
             ],
         }
         response_format = self.config.get("response_format", "json_schema")
         if response_format == "json_schema":
-            payload["text"] = {"format": {"type": "json_schema", **_decision_schema(record)}}
+            payload["text"] = {"format": {"type": "json_schema", **contract.llm_schema(record)}}
         elif response_format == "json_object":
             payload["text"] = {"format": {"type": "json_object"}}
         else:
@@ -363,7 +251,7 @@ class OpenAICompatibleResponsesAdapter(DecisionAdapter):
                 body=canonical_json(response),
             )
         try:
-            answer, selected_probability, positive_probability = _parsed_llm_decision(record, parsed)
+            answer, selected_probability, positive_probability = _normalized_llm_result(record, parsed)
         except AdapterError as error:
             raise AdapterError(str(error), invalid_output=True, body=canonical_json(response)) from error
         usage = response.get("usage") if isinstance(response.get("usage"), dict) else None
@@ -384,19 +272,20 @@ class BedrockConverseAdapter(DecisionAdapter):
     adapter_version = "bedrock-converse-v1"
 
     def render(self, record: dict[str, Any]) -> dict[str, Any]:
+        contract = contract_for_record(record)
         payload: dict[str, Any] = {
-            "system": [{"text": _decision_instructions(record)}],
+            "system": [{"text": contract.llm_instructions()}],
             "messages": [
                 {
                     "role": "user",
-                    "content": [{"text": _choice_input(record)}],
+                    "content": [{"text": contract.llm_input(record)}],
                 }
             ],
             "inferenceConfig": {"maxTokens": self.config.get("max_tokens", 128)},
         }
         response_format = self.config.get("response_format", "json_schema")
         if response_format == "json_schema":
-            schema = _decision_schema(record)
+            schema = contract.llm_schema(record)
             # Bedrock Converse rejects numeric minimum and maximum constraints.
             # The benchmark still validates confidence is in [0, 1] after the
             # response, so this only relaxes a provider-side rendering detail.
@@ -456,7 +345,7 @@ class BedrockConverseAdapter(DecisionAdapter):
                 body=canonical_json(response),
             )
         try:
-            answer, selected_probability, positive_probability = _parsed_llm_decision(record, parsed)
+            answer, selected_probability, positive_probability = _normalized_llm_result(record, parsed)
         except AdapterError as error:
             raise AdapterError(str(error), invalid_output=True, body=canonical_json(response)) from error
         raw_usage = response.get("usage") if isinstance(response.get("usage"), dict) else None

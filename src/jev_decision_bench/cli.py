@@ -50,11 +50,14 @@ def build_parser() -> argparse.ArgumentParser:
     score_parser = subparsers.add_parser("score", help="Score saved run evidence offline")
     score_parser.add_argument("--run", required=True, type=Path)
     score_parser.add_argument("--package", required=True, type=Path)
+    score_parser.add_argument("--evaluation", type=Path, help="Evaluation policy JSON; defaults to the experiment's recommended policy")
+    score_parser.add_argument("--artifacts-root", default="artifacts", type=_artifacts_path)
     compare_parser = subparsers.add_parser("compare", help="Compare completed compatible runs")
     compare_parser.add_argument("--package", required=True, type=Path)
     compare_parser.add_argument("--baseline", required=True, type=Path)
     compare_parser.add_argument("--runs", required=True, type=Path, nargs="+")
     compare_parser.add_argument("--artifacts-root", default="artifacts", type=_artifacts_path)
+    compare_parser.add_argument("--evaluation", type=Path, help="Evaluation policy used to score every compared run")
     return parser
 
 
@@ -78,11 +81,11 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Error: {run_manifest['preflight_error']}", file=sys.stderr)
                 return 1
         elif args.command == "score":
-            metrics = score(args.run, args.package)
-            print(args.run / "evaluation.json")
+            output_dir, metrics = score(args.run, args.package, args.evaluation, args.artifacts_root)
+            print(output_dir / "scores.json")
             print(f"accuracy_on_valid={metrics['accuracy_on_valid']}")
         elif args.command == "compare":
-            print(compare(args.package, args.baseline, args.runs, args.artifacts_root))
+            print(compare(args.package, args.baseline, args.runs, args.artifacts_root, args.evaluation))
     except Exception as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1

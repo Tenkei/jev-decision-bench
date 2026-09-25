@@ -5,7 +5,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from .util import order_fields, read_json, write_json
+from .scoring import evaluation_output_dir, resolve_evaluation_config
+from .util import canonical_json, order_fields, read_json, sha256_bytes, write_json
 
 
 _ROW_ORDER = (
@@ -25,13 +26,21 @@ _ROW_ORDER = (
 )
 
 
-def _run_row(run_dir: Path, experiment_package_hash: str) -> dict[str, Any]:
+def _run_row(run_dir: Path, experiment_package_hash: str, evaluation: dict[str, Any] | None, artifacts_root: Path) -> dict[str, Any]:
     run_manifest = read_json(run_dir / "run-manifest.json")
     if run_manifest.get("status") != "completed":
         raise ValueError(f"Run is not completed: {run_dir}")
     if run_manifest.get("experiment_package_hash") != experiment_package_hash:
         raise ValueError(f"Run uses a different experiment package: {run_dir}")
-    metrics = read_json(run_dir / "evaluation.json")
+    if evaluation is None:
+        # Read-only compatibility for evaluation artifacts made before policy
+        # configurations were introduced.
+        metrics = read_json(run_dir / "evaluation.json")
+    else:
+        scores_path = evaluation_output_dir(run_manifest, evaluation, artifacts_root) / "scores.json"
+        if not scores_path.is_file():
+            raise ValueError(f"Run has not been scored with this evaluation policy: {run_dir}")
+        metrics = read_json(scores_path)
     if metrics.get("experiment_package_hash") != experiment_package_hash:
         raise ValueError(f"Evaluation uses a different experiment package: {run_dir}")
     return order_fields(
@@ -104,7 +113,13 @@ def _relative_to_baseline(candidate: dict[str, Any], baseline: dict[str, Any]) -
     )
 
 
-def compare(package_dir: Path, baseline_run_dir: Path, run_dirs: list[Path], artifacts_root: Path) -> Path:
+def compare(
+    package_dir: Path,
+    baseline_run_dir: Path,
+    run_dirs: list[Path],
+    artifacts_root: Path,
+    evaluation_config_path: Path | None = None,
+) -> Path:
     if not run_dirs:
         raise ValueError("Comparison requires at least one non-baseline run")
     if baseline_run_dir.resolve() in {run_dir.resolve() for run_dir in run_dirs}:
@@ -112,10 +127,12 @@ def compare(package_dir: Path, baseline_run_dir: Path, run_dirs: list[Path], art
 
     experiment = read_json(package_dir / "experiment-manifest.json")
     package_hash = experiment["experiment_package_hash"]
-    baseline = _run_row(baseline_run_dir, package_hash)
+    evaluation = resolve_evaluation_config(experiment, evaluation_config_path) if experiment.get("experiment_id") else None
+    evaluation_hash = sha256_bytes(canonical_json(evaluation).encode("utf-8")) if evaluation else None
+    baseline = _run_row(baseline_run_dir, package_hash, evaluation, artifacts_root)
     rows = []
     for run_dir in run_dirs:
-        row = _run_row(run_dir, package_hash)
+        row = _run_row(run_dir, package_hash, evaluation, artifacts_root)
         row["relative_to_baseline"] = _relative_to_baseline(row, baseline)
         rows.append(order_fields(row, (*_ROW_ORDER, "relative_to_baseline")))
 
@@ -126,10 +143,11 @@ def compare(package_dir: Path, baseline_run_dir: Path, run_dirs: list[Path], art
         {
             "comparison_id": comparison_id,
             "experiment_package_hash": package_hash,
+            "evaluation_config_sha256": evaluation_hash,
             "baseline": baseline,
             "runs": rows,
         },
-        ("comparison_id", "experiment_package_hash", "baseline", "runs"),
+        ("comparison_id", "experiment_package_hash", "evaluation_config_sha256", "baseline", "runs"),
     )
     write_json(output_dir / "comparison.json", result)
     return output_dir

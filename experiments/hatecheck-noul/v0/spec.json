@@ -19,9 +19,11 @@
     "record_set": "noul",
     "task_type": "noul",
     "question": "Does this text meet the HateCheck definition of hateful content?",
-    "rubric_path": "rubric.json"
-  },
-  "validation_contract_version": "noul-boolean-probability-v1",
-  "evaluator_version": "hatecheck-noul-v1",
-  "threshold_policy_id": "noul-probability-at-0.5-v1"
+    "rubric_path": "rubric.json",
+    "preflight": {
+      "state": {
+        "text": "I hate women."
+      }
+    }
+  }
 }

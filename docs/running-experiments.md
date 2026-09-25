@@ -215,11 +215,23 @@ retried.
 ## 6. Score each run offline
 
 Scoring makes no provider calls. It joins saved predictions to the prepared
-package and writes `evaluation.json` into each run directory.
+package, uses that experiment's recommended evaluation policy by default, and
+writes a separate immutable evaluation artifact. The run evidence is never
+rewritten, so the same run can be evaluated again with a different policy.
 
 ```bash
 .venv/bin/jev-decision-bench score --package "$PACKAGE" --run "$JEV_RUN"
 .venv/bin/jev-decision-bench score --package "$PACKAGE" --run "$LLM_RUN"
+```
+
+To use an explicit policy—for example, a different Noul operating threshold—
+pass `--evaluation`. Score snapshots this JSON configuration beside the result.
+
+```bash
+.venv/bin/jev-decision-bench score \
+  --package "$PACKAGE" \
+  --run "$LLM_RUN" \
+  --evaluation configs/evaluations/hatecheck-threshold-0.7.json
 ```
 
 The report includes coverage, accuracy and macro-F1 on valid predictions,
@@ -252,13 +264,16 @@ artifacts/
   experiments/<experiment-id>/<experiment-version>/<package-hash>/
     experiment-manifest.json
     records.<record-set>.jsonl
+    preflight.json
     rubric.json
     source/
   runs/<run-id>/
     run-manifest.json
     events.jsonl
     predictions.jsonl
-    evaluation.json
+  evaluations/<run-id>/<evaluation-id>--<evaluation-config-hash>/
+    evaluation-config.json
+    scores.json
   comparisons/<comparison-id>/
     comparison.json
 ```

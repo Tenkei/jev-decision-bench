@@ -50,6 +50,19 @@ class _InterruptedAdapter(_FakeAdapter):
         return super().predict(record)
 
 
+def _write_choice_preflight(package: Path) -> None:
+    write_json(
+        package / "preflight.json",
+        {
+            "decision_id": "preflight",
+            "task_type": "choice",
+            "state": {"query": "My physical card has not arrived."},
+            "question": "q",
+            "criteria": {"one": "one", "two": "two"},
+        },
+    )
+
+
 class RunnerTests(unittest.TestCase):
     def test_runner_records_every_terminal_prediction_and_scores_offline(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -65,6 +78,7 @@ class RunnerTests(unittest.TestCase):
                 {"decision_id": "b", "state": {"query": "second"}, "question": "q", "criteria": {"one": "one", "two": "two"}, "gold": "two"},
             ]
             write_jsonl(package / "records.choice.jsonl", records)
+            _write_choice_preflight(package)
             config = root / "model.json"
             write_json(
                 config,
@@ -95,7 +109,12 @@ class RunnerTests(unittest.TestCase):
             first_prediction = (run_dir / "predictions.jsonl").read_text(encoding="utf-8").splitlines()[0]
             self.assertLess(first_prediction.index('"decision_id"'), first_prediction.index('"status"'))
             self.assertLess(first_prediction.index('"status"'), first_prediction.index('"answer"'))
-            metrics = score(run_dir, package)
+            evaluation = root / "evaluation.json"
+            write_json(
+                evaluation,
+                {"evaluation_id": "fixture-choice", "evaluation_version": "v0", "task_type": "choice"},
+            )
+            _, metrics = score(run_dir, package, evaluation)
             self.assertAlmostEqual(metrics["coverage"], 1.0)
             self.assertAlmostEqual(metrics["accuracy_on_valid"], 0.5)
             with self.assertRaisesRegex(ValueError, "equivalent run already exists"):
@@ -120,6 +139,7 @@ class RunnerTests(unittest.TestCase):
                     {"decision_id": "b", "state": {"query": "second"}, "question": "q", "criteria": {"one": "one", "two": "two"}, "gold": "two"},
                 ],
             )
+            _write_choice_preflight(package)
             config = root / "model.json"
             write_json(
                 config,
@@ -158,6 +178,7 @@ class RunnerTests(unittest.TestCase):
                 package / "records.choice.jsonl",
                 [{"decision_id": "a", "state": {"query": "first"}, "question": "q", "criteria": {"one": "one"}, "gold": "one"}],
             )
+            _write_choice_preflight(package)
             config = root / "model.json"
             write_json(
                 config,
@@ -186,6 +207,7 @@ class RunnerTests(unittest.TestCase):
                 package / "records.choice.jsonl",
                 [{"decision_id": "a", "state": {"query": "first"}, "question": "q", "criteria": {"one": "one"}, "gold": "one"}],
             )
+            _write_choice_preflight(package)
             config = root / "model.json"
             write_json(
                 config,
@@ -214,6 +236,7 @@ class RunnerTests(unittest.TestCase):
                 package / "records.choice.jsonl",
                 [{"decision_id": "a", "state": {"query": "first"}, "question": "q", "criteria": {"one": "one"}, "gold": "one"}],
             )
+            _write_choice_preflight(package)
             config = root / "model.json"
             write_json(
                 config,
