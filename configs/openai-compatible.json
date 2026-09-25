@@ -1,0 +1,17 @@
+{
+  "adapter": "openai_compatible",
+  "provider": "openai-compatible",
+  "endpoint": "https://api.example.com/v1/chat/completions",
+  "api_key_env": "OPENAI_COMPATIBLE_API_KEY",
+  "model_id": "replace-with-model-id",
+  "model_revision": null,
+  "timeout_seconds": 60,
+  "max_retries": 2,
+  "max_tokens": 1024,
+  "response_format": "json_schema",
+  "model_config": {
+    "temperature": 0,
+    "reasoning_effort": "low"
+  },
+  "cost_basis": "unknown"
+}

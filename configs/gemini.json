@@ -1,0 +1,17 @@
+{
+  "adapter": "openai_compatible",
+  "provider": "gemini",
+  "endpoint": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+  "api_key_env": "GEMINI_API_KEY",
+  "model_id": "gemini-3.6-flash",
+  "model_revision": null,
+  "timeout_seconds": 60,
+  "max_retries": 2,
+  "max_tokens": 1024,
+  "response_format": "json_schema",
+  "model_config": {
+    "temperature": 0,
+    "reasoning_effort": "low"
+  },
+  "cost_basis": "unknown"
+}

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jev-decision-bench"
+version = "0.1.0"
+description = "JEV-native decision benchmarks for conventional language models"
+requires-python = ">=3.12"
+
+[project.scripts]
+jev-decision-bench = "jev_decision_bench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.unittest]
+start-directory = "tests"
+

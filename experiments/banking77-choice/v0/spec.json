@@ -1,0 +1,30 @@
+{
+  "experiment_id": "banking77-choice",
+  "experiment_version": "v0",
+  "dataset": {
+    "name": "BANKING77",
+    "license": "CC-BY-4.0",
+    "source_repository": "https://github.com/PolyAI-LDN/task-specific-datasets",
+    "revision": "57ec275d8078af65b7731c2a98be812d844a6d6b",
+    "files": {
+      "test.csv": {
+        "url": "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/57ec275d8078af65b7731c2a98be812d844a6d6b/banking_data/test.csv",
+        "sha256": "d12d6e3bc4c3103966ae786dc435913c0c563dfa328f5a3646d0e62cfeeb474d"
+      },
+      "categories.json": {
+        "url": "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/57ec275d8078af65b7731c2a98be812d844a6d6b/banking_data/categories.json",
+        "sha256": "53261da888122daf2d120d925458631d9619e15d82e56052e7a42e535ce32b63"
+      }
+    },
+    "expected_row_count": 3080
+  },
+  "task": {
+    "record_set": "choice",
+    "task_type": "choice",
+    "question": "Which banking intent best matches this query?",
+    "rubric_path": "rubric.json"
+  },
+  "validation_contract_version": "choice-top-label-confidence-v1",
+  "evaluator_version": "banking77-choice-v1",
+  "threshold_policy_id": "not_applicable"
+}

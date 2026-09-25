@@ -1,0 +1,13 @@
+{
+  "adapter": "openai_responses",
+  "provider": "amazon-bedrock",
+  "endpoint": "https://bedrock-runtime.ap-northeast-1.amazonaws.com/openai/v1/responses",
+  "api_key_env": "BEDROCK_API_KEY",
+  "model_id": "global.openai.gpt-5.6-luna",
+  "model_revision": null,
+  "timeout_seconds": 60,
+  "max_retries": 2,
+  "max_tokens": 1024,
+  "response_format": "json_schema",
+  "cost_basis": "unknown"
+}
