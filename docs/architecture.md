@@ -6,47 +6,84 @@ fairly, preserve raw evidence, and re-evaluate a completed run without calling
 a model again.
 
 ```mermaid
-flowchart TD
-    source["Experiment source (versioned)<br/>spec · rubric · source pins<br/>preflight fixture · recommended evaluation"]
-    package["Experiment package (immutable)<br/>records · rubric · preflight"]
-    runner["Runner"]
-    contract["Task contract<br/>Choice · Noul · future Score"]
+flowchart LR
+    source[("Experiment source<br/>(versioned)")]
+    policy[("Evaluation policy<br/>(versioned)")]
+    route[("Route configuration<br/>(versioned input)")]
+    package[("Experiment package<br/>(immutable · SHA-256)")]
+    run[("Run evidence<br/>(immutable)")]
+    evaluation[("Evaluation artifact<br/>(immutable)")]
+    comparison[("Comparison artifact<br/>(immutable)")]
+
+    compiler["Experiment compiler<br/>prepare"]
+    contracts["Task-contract registry<br/>Choice · Noul · future Score"]
+    runner["Runner<br/>run"]
     adapter["Model adapter"]
     provider["Provider API"]
-    run["Run evidence (immutable)<br/>pinned route config · events · predictions"]
-    policy["Evaluation policy"]
-    scorer["Scorer<br/>resolves task type and dispatches metrics"]
-    evaluation["Evaluation artifact (immutable)<br/>evaluation-config.json · scores.json"]
+    scorer["Scorer<br/>score"]
+    comparator["Comparator<br/>compare"]
 
-    source -->|prepare| package
-    package -->|run| runner
-    runner -->|resolves task type| contract
-    runner -->|executes records| adapter
-    contract -->|renders and validates| adapter
-    adapter -->|request| provider
-    provider -->|response| adapter
-    adapter --> run
-    run -->|saved predictions| scorer
+    source -->|versioned source| compiler
+    compiler -->|uses| contracts
+    compiler -->|writes| package
+
+    package -->|records and preflight| runner
+    route -->|route configuration| runner
+    runner -->|resolves task contract| contracts
+    runner -->|executes decisions| adapter
+    contracts -->|renders and parses decisions| adapter
+    adapter -->|calls| provider
+    provider -->|responds| adapter
+    runner -->|writes| run
+
     package -->|records and gold labels| scorer
-    scorer -->|resolves task type| contract
-    policy -->|configures| scorer
-    scorer -->|score| evaluation
+    run -->|predictions| scorer
+    policy -->|evaluation policy| scorer
+    scorer -->|resolves task contract| contracts
+    scorer -->|writes| evaluation
 
+    package -->|package hash| comparator
+    evaluation -->|baseline and candidate scores| comparator
+    comparator -->|writes| comparison
+
+    classDef component fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-width:1px
+    classDef versioned fill:#dbeafe,stroke:#2563eb,color:#1e3a8a,stroke-width:2px
     classDef immutable fill:#d1fae5,stroke:#047857,color:#064e3b,stroke-width:2px
-    class package,run,evaluation immutable
+    class compiler,contracts,runner,adapter,provider,scorer,comparator component
+    class source,policy,route versioned
+    class package,run,evaluation,comparison immutable
 ```
 
-## Main boundaries
+## Diagram conventions
+
+Rectangles are code or external-service components. Cylinder-shaped data nodes are
+artifacts read or written by those components. Blue data nodes are versioned
+source or configuration inputs; green data nodes are immutable artifacts. The
+benchmark does not cryptographically sign artifacts today: immutable artifacts
+are identified by their recorded SHA-256 hashes and never overwritten.
+
+## Components
 
 | Component | Responsibility | Does not own |
 | --- | --- | --- |
-| Experiment source | Dataset pins, rubric, task type, preflight fixture, recommended evaluation policy | Provider prompts or credentials |
-| Prepared package | Immutable compiled records and hashes | Model route or evaluation result |
+| Experiment compiler | Reads a versioned experiment source, downloads pinned data, and writes a verified package | Model routes or evaluation results |
 | Task contract | Semantics of Choice, Noul, or Score: schemas, native JEV shape, parsing, and validation | HTTP transport, dataset download, or aggregate metrics |
 | Adapter | API transport: request serialization, authentication, response extraction, retries at the runner boundary | Whether an answer is a valid Choice or Noul decision |
-| Run | One model route answering one exact package | Scoring policy |
+| Runner | Resolves the package task type, executes each decision, and writes terminal prediction evidence | Scoring policy or metric aggregation |
 | Scorer | Resolves the package task type, selects task-specific metrics, and applies an evaluation policy | Provider calls or changes to run evidence |
-| Evaluation artifact | Immutable policy snapshot and metrics for one completed run | Provider calls or changes to run evidence |
+| Comparator | Joins scored compatible runs against an explicit baseline | Re-scoring or provider calls |
+
+## Data artifacts
+
+| Artifact | Lifecycle | Read by | Written by |
+| --- | --- | --- | --- |
+| Experiment source | Versioned in Git | Experiment compiler | Maintainers |
+| Route configuration | Versioned, editable input | Runner | Maintainers |
+| Evaluation policy | Versioned, editable input | Scorer | Maintainers |
+| Experiment package | Immutable, SHA-256 identified | Runner, scorer, comparator | Experiment compiler |
+| Run evidence | Immutable | Scorer | Runner |
+| Evaluation artifact | Immutable | Comparator | Scorer |
+| Comparison artifact | Immutable | Consumers | Comparator |
 
 ## Experiment package
 
