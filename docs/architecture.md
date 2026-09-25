@@ -27,8 +27,8 @@ flowchart LR
     compiler -->|uses| contracts
     compiler -->|writes| package
 
-    package -->|records and preflight| runner
-    model_config -->|model configuration| runner
+    package --> runner
+    model_config --> runner
     runner -->|resolves task contract| contracts
     runner -->|executes decisions| adapter
     contracts -->|renders and parses decisions| adapter
