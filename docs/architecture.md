@@ -27,6 +27,9 @@ flowchart TD
     adapter --> run
     run -->|score| evaluation
     policy -->|configures| evaluation
+
+    classDef immutable fill:#d1fae5,stroke:#047857,color:#064e3b,stroke-width:2px
+    class package,run,evaluation immutable
 ```
 
 ## Main boundaries
