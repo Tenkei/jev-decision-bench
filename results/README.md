@@ -16,6 +16,8 @@ Accuracy is shown per task and is not an overall cross-task ranking. TREC uses
 nearest-tier accuracy from the reported continuous score; the other experiments
 use their task's normal decision accuracy.
 
+![Decision quality by task type](charts/quality.svg)
+
 | Model | Intent routing accuracy | Policy & guardrail accuracy | Search relevance tier accuracy |
 | --- | ---: | ---: | ---: |
 | JEV | 81.0% | 98.2% | 47.4% |
@@ -41,6 +43,8 @@ For intent routing and policy & guardrail decisions, this is the task
 contract's valid-output rate. For search relevance, it is whether a usable
 final score agrees with its probability distribution, plus the malformed-response rate.
 
+![Output reliability by task type](charts/reliability.svg)
+
 | Model | Structured output | Effort | Intent routing valid | Policy & guardrail valid | Relevance consistency | Relevance malformed |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
 | JEV | Native | — | 100.0% | 100.0% | 100.0% | 0.75% |
@@ -59,6 +63,10 @@ and latency are not universal cost measures across providers or networks.
 Each performance cell is `p50 latency / reported total tokens per attempted
 decision`. Latency is milliseconds. Token counts are provider-reported and not
 cost-equivalent across providers.
+
+![P50 latency by task type](charts/latency.svg)
+
+![Token usage by task type](charts/tokens.svg)
 
 | Model | Intent routing | Policy & guardrail | Search relevance |
 | --- | ---: | ---: | ---: |

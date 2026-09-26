@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="290" viewBox="0 0 1260 290" role="img">
+<style>text{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#172033}.title{font-size:18px;font-weight:700}.subtitle{font-size:12px;fill:#526072}.label{font-size:11px}.value{font-size:11px;font-weight:600}.grid{stroke:#d9e0ea;stroke-width:1}.track{fill:#edf1f6}</style>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text class="title" x="20" y="28">Decision quality</text>
+<text class="subtitle" x="20" y="48">Accuracy by task type. Higher is better; tasks are shown separately and are not a combined ranking.</text>
+<text class="title" x="20" y="78">Choice</text>
+<line class="grid" x1="20" y1="88" x2="405" y2="88"/>
+<text class="label" x="20" y="120">JEV</text>
+<rect class="track" x="165" y="109" width="190" height="14" rx="3"/>
+<rect x="165" y="109" width="153.91" height="14" rx="3" fill="#2563eb"/>
+<text class="value" x="361" y="120">81.0%</text>
+<text class="label" x="20" y="148">DeepSeek V3.2</text>
+<rect class="track" x="165" y="137" width="190" height="14" rx="3"/>
+<rect x="165" y="137" width="151.01" height="14" rx="3" fill="#9333ea"/>
+<text class="value" x="361" y="148">79.5%</text>
+<text class="label" x="20" y="176">Claude Haiku 4.5</text>
+<rect class="track" x="165" y="165" width="190" height="14" rx="3"/>
+<rect x="165" y="165" width="147.93" height="14" rx="3" fill="#ea580c"/>
+<text class="value" x="361" y="176">77.9%</text>
+<text class="label" x="20" y="204">Claude Sonnet 5</text>
+<rect class="track" x="165" y="193" width="190" height="14" rx="3"/>
+<rect x="165" y="193" width="152.99" height="14" rx="3" fill="#d97706"/>
+<text class="value" x="361" y="204">80.5%</text>
+<text class="label" x="20" y="232">GPT-5.6 Luna</text>
+<rect class="track" x="165" y="221" width="190" height="14" rx="3"/>
+<rect x="165" y="221" width="162.61" height="14" rx="3" fill="#0891b2"/>
+<text class="value" x="361" y="232">85.6%</text>
+<text class="label" x="20" y="260">GPT-5.6 Sol</text>
+<rect class="track" x="165" y="249" width="190" height="14" rx="3"/>
+<rect x="165" y="249" width="163.60" height="14" rx="3" fill="#059669"/>
+<text class="value" x="361" y="260">86.1%</text>
+<text class="title" x="440" y="78">Noul</text>
+<line class="grid" x1="440" y1="88" x2="825" y2="88"/>
+<text class="label" x="440" y="120">JEV</text>
+<rect class="track" x="585" y="109" width="190" height="14" rx="3"/>
+<rect x="585" y="109" width="186.53" height="14" rx="3" fill="#2563eb"/>
+<text class="value" x="781" y="120">98.2%</text>
+<text class="label" x="440" y="148">DeepSeek V3.2</text>
+<rect class="track" x="585" y="137" width="190" height="14" rx="3"/>
+<rect x="585" y="137" width="184.70" height="14" rx="3" fill="#9333ea"/>
+<text class="value" x="781" y="148">97.2%</text>
+<text class="label" x="440" y="176">Claude Haiku 4.5</text>
+<rect class="track" x="585" y="165" width="190" height="14" rx="3"/>
+<rect x="585" y="165" width="180.68" height="14" rx="3" fill="#ea580c"/>
+<text class="value" x="781" y="176">95.1%</text>
+<text class="label" x="440" y="204">Claude Sonnet 5</text>
+<rect class="track" x="585" y="193" width="190" height="14" rx="3"/>
+<rect x="585" y="193" width="185.11" height="14" rx="3" fill="#d97706"/>
+<text class="value" x="781" y="204">97.4%</text>
+<text class="label" x="440" y="232">GPT-5.6 Luna</text>
+<rect class="track" x="585" y="221" width="190" height="14" rx="3"/>
+<rect x="585" y="221" width="189.93" height="14" rx="3" fill="#0891b2"/>
+<text class="value" x="781" y="232">100.0%</text>
+<text class="label" x="440" y="260">GPT-5.6 Sol</text>
+<rect class="track" x="585" y="249" width="190" height="14" rx="3"/>
+<rect x="585" y="249" width="189.54" height="14" rx="3" fill="#059669"/>
+<text class="value" x="781" y="260">99.8%</text>
+<text class="title" x="860" y="78">Score</text>
+<line class="grid" x1="860" y1="88" x2="1245" y2="88"/>
+<text class="label" x="860" y="120">JEV</text>
+<rect class="track" x="1005" y="109" width="190" height="14" rx="3"/>
+<rect x="1005" y="109" width="89.97" height="14" rx="3" fill="#2563eb"/>
+<text class="value" x="1201" y="120">47.4%</text>
+<text class="label" x="860" y="148">DeepSeek V3.2</text>
+<rect class="track" x="1005" y="137" width="190" height="14" rx="3"/>
+<rect x="1005" y="137" width="81.46" height="14" rx="3" fill="#9333ea"/>
+<text class="value" x="1201" y="148">42.9%</text>
+<text class="label" x="860" y="176">Claude Haiku 4.5</text>
+<rect class="track" x="1005" y="165" width="190" height="14" rx="3"/>
+<rect x="1005" y="165" width="84.66" height="14" rx="3" fill="#ea580c"/>
+<text class="value" x="1201" y="176">44.6%</text>
+<text class="label" x="860" y="204">Claude Sonnet 5</text>
+<rect class="track" x="1005" y="193" width="190" height="14" rx="3"/>
+<rect x="1005" y="193" width="90.07" height="14" rx="3" fill="#d97706"/>
+<text class="value" x="1201" y="204">47.4%</text>
+<text class="label" x="860" y="232">GPT-5.6 Luna</text>
+<rect class="track" x="1005" y="221" width="190" height="14" rx="3"/>
+<rect x="1005" y="221" width="85.97" height="14" rx="3" fill="#0891b2"/>
+<text class="value" x="1201" y="232">45.2%</text>
+<text class="label" x="860" y="260">GPT-5.6 Sol</text>
+<rect class="track" x="1005" y="249" width="190" height="14" rx="3"/>
+<rect x="1005" y="249" width="87.04" height="14" rx="3" fill="#059669"/>
+<text class="value" x="1201" y="260">45.8%</text>
+</svg>
