@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from .compare import compare
+from .export import export_results
 from .prepare import prepare
 from .runner import run
 from .scoring import score
@@ -58,6 +59,13 @@ def build_parser() -> argparse.ArgumentParser:
     compare_parser.add_argument("--runs", required=True, type=Path, nargs="+")
     compare_parser.add_argument("--artifacts-root", default="artifacts", type=_artifacts_path)
     compare_parser.add_argument("--evaluation", type=Path, help="Require quality metrics from scores made with this evaluation policy")
+    export_parser = subparsers.add_parser("export", help="Create a sanitized archive for a scored comparison")
+    export_parser.add_argument("--package", required=True, type=Path)
+    export_parser.add_argument("--comparison", required=True, type=Path, help="Comparison directory or comparison.json")
+    export_parser.add_argument("--artifacts-root", default="artifacts", type=_artifacts_path)
+    export_parser.add_argument("--results-root", default="results", type=_artifacts_path, help="Tracked directory for the published summary")
+    export_parser.add_argument("--output-dir", default="artifacts/exports", type=_artifacts_path)
+    export_parser.add_argument("--overwrite", action="store_true", help="Replace an existing summary and archive with this comparison ID")
     return parser
 
 
@@ -89,6 +97,10 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"accuracy_on_valid={metrics['accuracy_on_valid']}")
         elif args.command == "compare":
             print(compare(args.package, args.baseline, args.runs, args.artifacts_root, args.evaluation))
+        elif args.command == "export":
+            summary, archive = export_results(args.package, args.comparison, args.artifacts_root, args.results_root, args.output_dir, overwrite=args.overwrite)
+            print(summary)
+            print(archive)
     except Exception as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
