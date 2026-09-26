@@ -183,4 +183,6 @@ evaluations stay unchanged.
 ## Next
 
 Read the [Methodology](methodology.md) for the reproducibility rules, then use
-[Running experiments](running-experiments.md) to prepare and execute a model run.
+[Running experiments](running-experiments.md) to prepare and execute a model
+run and [Analyzing and sharing results](analyzing-results.md) to evaluate and
+publish it.

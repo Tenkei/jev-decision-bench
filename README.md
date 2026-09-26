@@ -102,6 +102,8 @@ and provider-specific setup.
 - [Architecture](docs/architecture.md) — code boundaries, immutable artifacts,
   task contracts, adapters, and re-evaluation.
 - [Running experiments](docs/running-experiments.md) — environment setup,
-  preparation, execution, scoring, and comparison.
+  package preparation, and model execution.
+- [Analyzing and sharing results](docs/analyzing-results.md) — offline scoring,
+  comparison, reproducible exports, and publication artifacts.
 - [AWS / Amazon Bedrock](docs/aws.md) — self-service AWS credentials and
   Bedrock setup.

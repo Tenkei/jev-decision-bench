@@ -15,4 +15,6 @@ records, preflight fixture, and recommended evaluation policy are defined.
 ## Next
 
 Read [Running experiments](running-experiments.md) to prepare the selected
-package, run each model, score the saved evidence, and compare compatible runs.
+package and run each model. Then use [Analyzing and sharing
+results](analyzing-results.md) to score saved evidence, compare compatible
+runs, and publish the result.

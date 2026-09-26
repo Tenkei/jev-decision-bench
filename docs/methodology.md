@@ -139,6 +139,12 @@ added rather than collapsed into a single score.
 | `Noul` | Precision, recall, AUROC, Brier score, expected calibration error, confidence-based risk/coverage | Measures binary decision quality and the usefulness of confidence. |
 | `Score` | Nearest-tier accuracy and ordinal mean absolute error from the reported score; score–distribution consistency; malformed-response rate; multiclass Brier score, log loss, classwise ECE, and entropy from the level distribution | Separates the final ordinal estimate, whether it agrees with the reported distribution, malformed responses, and the distribution's calibrated uncertainty. |
 
+For Score, final-score quality, score-distribution consistency, and
+distribution quality remain separate. A `partial` response has a usable score
+and complete level distribution whose two fields disagree; it participates in
+score and distribution metrics, while consistency reports the disagreement. An
+`invalid` response is malformed and is reported separately.
+
 ## Lifecycle
 
 An experiment moves through four stages. `prepare` produces the experiment
