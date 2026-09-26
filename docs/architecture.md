@@ -6,75 +6,80 @@ fairly, preserve raw evidence, and re-evaluate a completed run without calling
 a model again.
 
 ```mermaid
-flowchart LR
-    source[("Experiment source<br/>(versioned)")]
-    policy[("Evaluation policy<br/>(versioned)")]
-    model_config[("Model configuration<br/>(pinned per run)")]
-    package[("Experiment package<br/>(immutable · SHA-256)")]
-    run[("Run evidence<br/>(immutable)")]
-    evaluation[("Evaluation artifact<br/>(immutable)")]
-    comparison[("Comparison artifact<br/>(immutable)")]
+flowchart TB
+    contracts@{ shape: procs, label: "Task-contract registry<br/>(Choice · Noul · Score)" }
 
-    compiler["Experiment compiler<br/>prepare"]
-    contracts["Task-contract registry<br/>Choice · Noul · future Score"]
-    runner["Runner<br/>run"]
-    adapter["Model adapter"]
-    provider["Provider API"]
-    scorer["Scorer<br/>score"]
-    comparator["Comparator<br/>compare"]
+    subgraph prepare_stage["Prepare"]
+        source[("Experiment source<br/>(versioned)")]
+        compiler["Experiment compiler"]
+        package[("Experiment package<br/>(immutable · SHA-256)")]
+    end
 
-    source -->|versioned source| compiler
-    compiler -->|uses| contracts
-    compiler -->|writes| package
+    subgraph run_stage["Run"]
+        model_config[("Model configuration<br/>(pinned per run)")]
+        runner["Runner"]
+        adapter["Model adapter"]
+        provider["Provider API"]
+        run[("Run evidence<br/>(immutable)")]
+    end
 
-    package --> runner
-    model_config --> runner
-    runner -->|resolves task contract| contracts
-    runner -->|executes decisions| adapter
-    contracts -->|renders and parses decisions| adapter
-    adapter -->|calls| provider
-    provider -->|responds| adapter
-    runner -->|writes| run
+    subgraph evaluation_stage["Score"]
+        policy[("Evaluation policy<br/>(versioned)")]
+        scorer["Scorer<br/>score"]
+        evaluation[("Evaluation results<br/>(immutable)")]
+    end
 
-    package -->|records and gold labels| scorer
-    run -->|predictions| scorer
-    policy -->|evaluation policy| scorer
-    scorer -->|resolves task contract| contracts
-    scorer -->|writes| evaluation
-
-    package -->|package hash| comparator
-    evaluation -->|baseline and candidate scores| comparator
-    comparator -->|writes| comparison
-
-    classDef component fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-width:1px
     classDef versioned fill:#dbeafe,stroke:#2563eb,color:#1e3a8a,stroke-width:2px
     classDef pinned fill:#fef3c7,stroke:#b45309,color:#78350f,stroke-width:2px
     classDef immutable fill:#d1fae5,stroke:#047857,color:#064e3b,stroke-width:2px
-    class compiler,contracts,runner,adapter,provider,scorer,comparator component
     class source,policy versioned
     class model_config pinned
-    class package,run,evaluation,comparison immutable
+    class package,run,evaluation immutable
+
+
+    source --> compiler
+    compiler -- uses --> contracts
+    compiler -- prepares --> package
+
+    package --> runner
+    model_config --> runner
+    runner -- resolves task contract --> contracts
+    runner <-- decision request / normalized result --> adapter
+    adapter -- uses rendering and parsing --> contracts
+    adapter e1@-- calls --> provider
+    provider e2@-- responds --> adapter
+    runner -- writes --> run
+    
+    e1@{ animate: true }
+    e2@{ animate: true }
+
+    package -- records and<br/>gold labels --> scorer
+    policy --> scorer
+    run -- predictions --> scorer
+    scorer -- resolves task contract --> contracts
+    scorer -- writes --> evaluation
+
+    classDef component fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-width:1px
+    class compiler,contracts,runner,adapter,provider,scorer component
 ```
 
 ## Diagram conventions
 
-Rectangles are code or external-service components. Cylinder-shaped data nodes are
-artifacts read or written by those components. Blue data nodes are versioned
-inputs, yellow data nodes are pinned for a particular run, and green data nodes
-are immutable artifacts. The benchmark does not cryptographically sign
-artifacts today: immutable artifacts are identified by their recorded SHA-256
-hashes and never overwritten.
+- Rectangles are code or external-service components.
+- Cylinder-shaped nodes are data artifacts read or written by components.
+- Arrow labels describe the data or operation that crosses a component boundary.
+- The benchmark does not cryptographically sign artifacts today. Immutable
+  artifacts are identified by recorded SHA-256 hashes and never overwritten.
 
 ## Components
 
-| Component | Responsibility | Does not own |
-| --- | --- | --- |
-| Experiment compiler | Reads a versioned experiment source, downloads pinned data, and writes a verified package | Model routes or evaluation results |
-| Task contract | Semantics of Choice, Noul, or Score: schemas, native JEV shape, parsing, and validation | HTTP transport, dataset download, or aggregate metrics |
-| Adapter | API transport: request serialization, authentication, response extraction, retries at the runner boundary | Whether an answer is a valid Choice or Noul decision |
-| Runner | Resolves the package task type, executes each decision, and writes terminal prediction evidence | Scoring policy or metric aggregation |
-| Scorer | Resolves the package task type, selects task-specific metrics, and applies an evaluation policy | Provider calls or changes to run evidence |
-| Comparator | Joins scored compatible runs against an explicit baseline | Re-scoring or provider calls |
+| Component | Responsibility |
+| --- | --- |
+| Experiment compiler | Reads a versioned experiment source, downloads pinned data, and writes a verified package. |
+| Task contract | Defines Choice, Noul, or Score semantics: schemas, native JEV shape, parsing, and validation. |
+| Adapter | Handles API transport: request serialization, authentication, response extraction, and provider-specific response details. |
+| Runner | Resolves the package task type, executes each decision, and writes terminal prediction evidence. |
+| Scorer | Resolves the package task type, selects task-specific metrics, and applies an evaluation policy. |
 
 ## Data artifacts
 
@@ -83,10 +88,9 @@ hashes and never overwritten.
 | Experiment source | Versioned in Git | Experiment compiler | Maintainers |
 | Model configuration | Pinned per run by SHA-256 | Runner | Maintainers; runner snapshots the sanitized configuration |
 | Evaluation policy | Versioned, editable input | Scorer | Maintainers |
-| Experiment package | Immutable, SHA-256 identified | Runner, scorer, comparator | Experiment compiler |
+| Experiment package | Immutable, SHA-256 identified | Runner, scorer | Experiment compiler |
 | Run evidence | Immutable | Scorer | Runner |
-| Evaluation artifact | Immutable | Comparator | Scorer |
-| Comparison artifact | Immutable | Consumers | Comparator |
+| Evaluation artifact | Immutable | Reporting tools and consumers | Scorer |
 
 ## Experiment package
 
@@ -143,7 +147,7 @@ The runner rejects accidental duplicate runs with the same package, route
 configuration, and adapter version. A stopped run can be resumed only when all
 three still match.
 
-## Evaluation and comparison
+## Evaluation
 
 `score` reads saved predictions plus the package's task contract. By default
 it uses the experiment's `default-evaluation.json`; `--evaluation` selects a
@@ -159,10 +163,6 @@ This lets the same Noul probabilities be evaluated at another threshold, or
 with another calibration-bin count, without rerunning the model. The policy is
 snapshotted with each result, so old and new evaluations remain comparable and
 auditable.
-
-`compare` accepts only completed runs from the same package and evaluation
-policy. It preserves their absolute metrics and adds deltas or ratios relative
-to an explicitly selected baseline.
 
 ## Extension points
 
