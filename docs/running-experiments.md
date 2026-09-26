@@ -122,14 +122,17 @@ Preparation downloads the pinned source files, checks their SHA-256 values and
 row count, compiles the experiment's decision records, and writes an immutable
 package below `artifacts/`.
 
+Discover the registered experiment IDs with:
+
 ```bash
-.venv/bin/jev-decision-bench prepare --experiment banking77-choice-v0
+.venv/bin/jev-decision-bench prepare --help
 ```
 
-For the HateCheck Noul experiment, use:
+The [experiment index](index.md) describes each experiment's dataset and task
+contract. For example, prepare the BANKING77 Choice experiment with:
 
 ```bash
-.venv/bin/jev-decision-bench prepare --experiment hatecheck-noul-v0
+.venv/bin/jev-decision-bench prepare --experiment banking77-choice-v0
 ```
 
 The command prints the package directory. Save it for every later stage:
