@@ -11,6 +11,25 @@ The central question is:
 > reliably, quickly, and cheaply can JEV and conventional LLMs make a
 > code-consumable decision?
 
+## Benchmark at a glance
+
+These are reproducible experiment snapshots, not a single cross-task
+leaderboard. Each cell shows accuracy followed by provider-reported token usage
+per attempted decision; Score uses nearest-tier accuracy from the
+reported continuous score.
+
+| Model / Accuracy (token usage) | `Choice` | `Noul` | `Score` |
+| --- | ---: | ---: | ---: |
+| JEV | 81.0% (2,867) | 98.2% (382) | 47.4% (484) |
+| DeepSeek V3.2 | 79.5% (1,297) | 97.2% (195) | 42.9% (364) |
+| Claude Haiku 4.5 | 77.9% (2,326) | 95.1% (367) | 44.6% (649) |
+| Claude Sonnet 5 | 80.5% (2,038) | 97.4% (285) | 47.4% (499) |
+| GPT-5.6 Luna | 85.6% (1,608) | 100.0% (196) | 45.2% (516) |
+| GPT-5.6 Sol | 86.1% (1,148) | 99.8% (208) | 45.8% (426) |
+
+See [published results](results/README.md) for output reliability, structured
+output mode, latency, token use, and detailed reports.
+
 ## A Benchmark You Run Yourself
 
 This project is not a generic online benchmark suite or a hosted leaderboard. It is an
