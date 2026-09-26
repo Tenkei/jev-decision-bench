@@ -55,8 +55,10 @@ def _common_metrics(run_manifest: dict[str, Any], manifest: dict[str, Any], pred
     return {
         "run_id": run_manifest["run_id"], "experiment_package_hash": manifest["experiment_package_hash"],
         "total_records": total, "status_counts": dict(Counter(prediction["status"] for prediction in predictions)),
-        "valid_predictions": len(valid), "coverage": len(valid) / total if total else None,
+        "valid_predictions": len(valid), "partial_predictions": sum(prediction["status"] == "partial" for prediction in predictions),
+        "coverage": len(valid) / total if total else None,
         "valid_output_rate": len(valid) / total if total else None,
+        "partial_output_rate": sum(prediction["status"] == "partial" for prediction in predictions) / total if total else None,
         "latency_ms": {"p50": _percentile(latencies, 50), "p95": _percentile(latencies, 95)},
         "cost_usd": {"known_total": sum(known_costs) if known_costs else None, "known_cost_record_count": len(known_costs), "per_attempted": sum(known_costs) / total if known_costs else None, "per_valid": sum(known_costs) / len(valid) if known_costs and valid else None},
     }
@@ -185,7 +187,7 @@ def evaluation_output_dir(run_manifest: dict[str, Any], evaluation: dict[str, An
 
 def _ordered_scores(metrics: dict[str, Any]) -> dict[str, Any]:
     return order_fields(metrics, (
-        "evaluation_id", "evaluation_version", "evaluation_config_sha256", "task_type", "run_id", "experiment_package_hash", "total_records", "status_counts", "valid_predictions", "coverage", "valid_output_rate", "accuracy_on_valid", "exact_tier_accuracy_on_valid", "ordinal_mae_on_valid", "macro_f1_on_valid", "precision_on_valid", "recall_on_valid", "auroc_on_valid", "true_probability_brier_on_valid", "true_probability_ece_10_bins", "top_label_brier_on_valid", "top_label_ece_10_bins", "latency_ms", "cost_usd", "confusion_matrix", "functionality_slices",
+        "evaluation_id", "evaluation_version", "evaluation_config_sha256", "task_type", "run_id", "experiment_package_hash", "total_records", "status_counts", "valid_predictions", "partial_predictions", "coverage", "valid_output_rate", "partial_output_rate", "accuracy_on_valid", "exact_tier_accuracy_on_valid", "ordinal_mae_on_valid", "macro_f1_on_valid", "precision_on_valid", "recall_on_valid", "auroc_on_valid", "true_probability_brier_on_valid", "true_probability_ece_10_bins", "top_label_brier_on_valid", "top_label_ece_10_bins", "latency_ms", "cost_usd", "confusion_matrix", "functionality_slices",
     ))
 
 

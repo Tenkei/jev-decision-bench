@@ -147,6 +147,12 @@ The runner rejects accidental duplicate runs with the same package, route
 configuration, and adapter version. A stopped run can be resumed only when all
 three still match.
 
+A `partial` prediction preserves a structurally complete Score answer whose
+reported score materially disagrees with its level-probability distribution.
+Its raw values and mismatch reason are retained for diagnosis, but it is kept
+out of strict quality and calibration metrics. Missing or malformed fields
+remain `invalid`.
+
 ## Evaluation
 
 `score` reads saved predictions plus the package's task contract. By default

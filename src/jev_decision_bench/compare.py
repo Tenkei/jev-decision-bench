@@ -93,14 +93,15 @@ def _provider_metrics(run_manifest: dict[str, Any], predictions: list[dict[str, 
     attempted = len(predictions)
     configured_total = run_manifest.get("counts", {}).get("total")
     total = configured_total if isinstance(configured_total, int) else attempted
-    valid, invalid, provider_error = counts["valid"], counts["invalid"], counts["provider_error"]
+    valid, partial, invalid, provider_error = counts["valid"], counts["partial"], counts["invalid"], counts["provider_error"]
     return order_fields(
         {
             "total_records": total, "attempted_records": attempted, "completion_rate": _rate(attempted, total),
-            "status_counts": {"valid": valid, "invalid": invalid, "provider_error": provider_error},
-            "provider_success_rate": _rate(valid + invalid, attempted), "valid_output_rate": _rate(valid, attempted),
+            "status_counts": {"valid": valid, "partial": partial, "invalid": invalid, "provider_error": provider_error},
+            "provider_success_rate": _rate(valid + partial + invalid, attempted), "valid_output_rate": _rate(valid, attempted),
+            "partial_output_rate": _rate(partial, attempted),
         },
-        ("total_records", "attempted_records", "completion_rate", "status_counts", "provider_success_rate", "valid_output_rate"),
+        ("total_records", "attempted_records", "completion_rate", "status_counts", "provider_success_rate", "valid_output_rate", "partial_output_rate"),
     )
 
 
@@ -175,6 +176,7 @@ def _relative_to_baseline(candidate: dict[str, Any], baseline: dict[str, Any]) -
                 "completion_rate_delta": _delta(candidate_provider["completion_rate"], baseline_provider["completion_rate"]),
                 "provider_success_rate_delta": _delta(candidate_provider["provider_success_rate"], baseline_provider["provider_success_rate"]),
                 "valid_output_rate_delta": _delta(candidate_provider["valid_output_rate"], baseline_provider["valid_output_rate"]),
+                "partial_output_rate_delta": _delta(candidate_provider["partial_output_rate"], baseline_provider["partial_output_rate"]),
             },
             "model_performance": {
                 "p50_latency_ratio": _ratio(candidate_performance["latency_ms"]["p50"], baseline_performance["latency_ms"]["p50"]),

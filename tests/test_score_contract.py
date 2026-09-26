@@ -53,6 +53,18 @@ class ScoreContractTests(unittest.TestCase):
             result = adapter.predict(RECORD)
         self.assertAlmostEqual(result.score, 0.32)
 
+    def test_score_distribution_mismatch_is_a_partial_answer(self) -> None:
+        response = {"answers": {"score": {"type": "score", "score": 3.0, "probabilities": {"0": 1.0, "1": 0.0, "2": 0.0, "3": 0.0}}}}
+        with patch.dict(os.environ, {"TEST_KEY": "secret"}), patch(
+            "jev_decision_bench.adapters._post_json", return_value=response
+        ):
+            adapter = TypeSafeSystemOneAdapter(
+                {"adapter": "typesafe_system_one", "provider": "test", "endpoint": "https://example.invalid", "api_key_env": "TEST_KEY", "model_id": "jev"}
+            )
+            result = adapter.predict(RECORD)
+        self.assertEqual(result.partial_error, "Score does not match its level probabilities")
+        self.assertEqual(result.score, 3.0)
+
     def test_bedrock_score_schema_removes_nested_numeric_bounds(self) -> None:
         with patch.dict(os.environ, {"TEST_KEY": "secret"}):
             adapter = BedrockConverseAdapter(

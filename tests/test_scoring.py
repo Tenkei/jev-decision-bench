@@ -113,6 +113,7 @@ class ScoringTests(unittest.TestCase):
                 [
                     {"decision_id": "a", "task_type": "score", "gold": 2, "criteria": ["0", "1", "2", "3"]},
                     {"decision_id": "b", "task_type": "score", "gold": 0, "criteria": ["0", "1", "2", "3"]},
+                    {"decision_id": "c", "task_type": "score", "gold": 3, "criteria": ["0", "1", "2", "3"]},
                 ],
             )
             write_json(run / "run-manifest.json", {"experiment_package_hash": "package-hash", "run_id": "run-1"})
@@ -121,6 +122,7 @@ class ScoringTests(unittest.TestCase):
                 [
                     {"decision_id": "a", "status": "valid", "answer": 2, "score": 2.4, "selected_probability": 0.6, "timing_ms": 10, "cost_usd": None},
                     {"decision_id": "b", "status": "valid", "answer": 1, "score": 1.0, "selected_probability": 1.0, "timing_ms": 20, "cost_usd": None},
+                    {"decision_id": "c", "status": "partial", "answer": 3, "score": 3.0, "selected_probability": 1.0, "timing_ms": 30, "cost_usd": None},
                 ],
             )
             evaluation = root / "score-evaluation.json"
@@ -128,3 +130,5 @@ class ScoringTests(unittest.TestCase):
             _, metrics = score(run, package, evaluation)
         self.assertAlmostEqual(metrics["exact_tier_accuracy_on_valid"], 0.5)
         self.assertAlmostEqual(metrics["ordinal_mae_on_valid"], 0.7)
+        self.assertEqual(metrics["partial_predictions"], 1)
+        self.assertAlmostEqual(metrics["partial_output_rate"], 1 / 3)

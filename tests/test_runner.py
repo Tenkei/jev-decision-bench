@@ -39,6 +39,20 @@ class _InvalidOutputAdapter(_FakeAdapter):
         raise AdapterError("invalid JSON", invalid_output=True, body="not JSON")
 
 
+class _PartialAdapter(_FakeAdapter):
+    def predict(self, record):
+        result = super().predict(record)
+        return AdapterResult(
+            answer=result.answer,
+            selected_probability=result.selected_probability,
+            model_revision=result.model_revision,
+            provider_usage=result.provider_usage,
+            cost_usd=result.cost_usd,
+            raw_response=result.raw_response,
+            partial_error="Score does not match its level probabilities",
+        )
+
+
 class _InterruptedAdapter(_FakeAdapter):
     def __init__(self) -> None:
         self.calls = 0
@@ -248,3 +262,29 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(manifest["status"], "completed")
             self.assertEqual(manifest["counts"]["invalid"], 1)
             self.assertEqual(manifest["counts"]["provider_error"], 0)
+
+    def test_runner_preserves_partial_answers(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package"
+            package.mkdir()
+            write_json(
+                package / "experiment-manifest.json",
+                {"experiment_package_hash": "package-hash", "experiment_id": "fixture", "experiment_version": "v0"},
+            )
+            write_jsonl(
+                package / "records.choice.jsonl",
+                [{"decision_id": "a", "state": {"query": "first"}, "question": "q", "criteria": {"one": "one"}, "gold": "one"}],
+            )
+            _write_choice_preflight(package)
+            config = root / "model.json"
+            write_json(
+                config,
+                {"adapter": "openai_compatible_chat_completions", "provider": "fixture", "endpoint": "https://example.invalid", "api_key_env": "UNUSED", "model_id": "fake", "max_retries": 0},
+            )
+            with patch("jev_decision_bench.runner.build_adapter", return_value=_PartialAdapter()):
+                run_dir = run(package, config, root / "artifacts")
+            prediction = read_jsonl(run_dir / "predictions.jsonl")[0]
+            self.assertEqual(prediction["status"], "partial")
+            self.assertEqual(prediction["partial_error"], "Score does not match its level probabilities")
+            self.assertEqual(read_json(run_dir / "run-manifest.json")["counts"]["partial"], 1)

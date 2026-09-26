@@ -158,7 +158,7 @@ def _reject_equivalent_run(matches: list[tuple[Path, str]]) -> None:
     )
 
 
-_TERMINAL_PREDICTION_STATUSES = frozenset({"valid", "invalid", "provider_error"})
+_TERMINAL_PREDICTION_STATUSES = frozenset({"valid", "partial", "invalid", "provider_error"})
 
 
 def _read_resume_predictions(predictions_path: Path, records: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -185,6 +185,7 @@ def _prediction_counts(predictions: list[dict[str, Any]], total: int) -> dict[st
         "total": total,
         "attempted": len(predictions),
         "valid": sum(prediction["status"] == "valid" for prediction in predictions),
+        "partial": sum(prediction["status"] == "partial" for prediction in predictions),
         "invalid": sum(prediction["status"] == "invalid" for prediction in predictions),
         "provider_error": sum(prediction["status"] == "provider_error" for prediction in predictions),
     }
@@ -352,9 +353,11 @@ def run(
                     result.positive_probability,
                     result.score,
                     result.level_probabilities,
+                    result.partial_error,
                 ),
             )
-            status = "invalid" if validation_error else "valid"
+            partial_error = None if validation_error else result.partial_error
+            status = "invalid" if validation_error else "partial" if partial_error else "valid"
             prediction = {
                 "decision_id": record["decision_id"],
                 "status": status,
@@ -363,6 +366,7 @@ def run(
                 "positive_probability": result.positive_probability if not validation_error else None,
                 "score": result.score if not validation_error else None,
                 "level_probabilities": result.level_probabilities if not validation_error else None,
+                "partial_error": partial_error,
                 "probability_provenance": "native" if config["adapter"] == "typesafe_system_one" else "verbalized",
                 "model": {
                     "provider": config["provider"],
@@ -387,6 +391,7 @@ def run(
                 "positive_probability": None,
                 "score": None,
                 "level_probabilities": None,
+                "partial_error": None,
                 "probability_provenance": None,
                 "model": {"provider": config["provider"], "id": config["model_id"], "revision": config.get("model_revision")},
                 "timing_ms": latency_ms,

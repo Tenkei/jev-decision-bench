@@ -40,6 +40,7 @@ class AdapterResult:
     positive_probability: float | None = None
     score: float | None = None
     level_probabilities: dict[str, float] | None = None
+    partial_error: str | None = None
 
 
 def _post_json(
@@ -123,6 +124,7 @@ class TypeSafeSystemOneAdapter(DecisionAdapter):
             positive_probability=decision.positive_probability,
             score=decision.score,
             level_probabilities=decision.level_probabilities,
+            partial_error=decision.partial_error,
             model_revision=response.get("model") or self.config.get("model_revision"),
             provider_usage=usage,
             cost_usd=float(cost) if isinstance(cost, (int, float)) else None,
@@ -206,6 +208,7 @@ class OpenAICompatibleChatCompletionsAdapter(DecisionAdapter):
             positive_probability=decision.positive_probability,
             score=decision.score,
             level_probabilities=decision.level_probabilities,
+            partial_error=decision.partial_error,
             model_revision=response.get("model") or self.config.get("model_revision"),
             provider_usage=usage,
             cost_usd=_configured_cost(usage, self.config),
@@ -267,6 +270,7 @@ class OpenAICompatibleResponsesAdapter(DecisionAdapter):
             positive_probability=decision.positive_probability,
             score=decision.score,
             level_probabilities=decision.level_probabilities,
+            partial_error=decision.partial_error,
             model_revision=response.get("model") or self.config.get("model_revision"),
             provider_usage=usage,
             cost_usd=_configured_cost(usage, self.config),
@@ -380,6 +384,7 @@ class BedrockConverseAdapter(DecisionAdapter):
             positive_probability=decision.positive_probability,
             score=decision.score,
             level_probabilities=decision.level_probabilities,
+            partial_error=decision.partial_error,
             model_revision=self.config.get("model_revision"),
             provider_usage=usage,
             cost_usd=_configured_cost(usage, self.config),

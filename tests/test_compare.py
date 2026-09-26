@@ -56,9 +56,10 @@ class CompareTests(unittest.TestCase):
             "total_records": 2,
             "attempted_records": 2,
             "completion_rate": 1.0,
-            "status_counts": {"valid": 1, "invalid": 0, "provider_error": 1},
+            "status_counts": {"valid": 1, "partial": 0, "invalid": 0, "provider_error": 1},
             "provider_success_rate": 0.5,
             "valid_output_rate": 0.5,
+            "partial_output_rate": 0.0,
         })
         self.assertEqual(row["model_performance"]["latency_ms"], {"p50": 20.0, "p95": 30.0})
         self.assertEqual(row["model_performance"]["token_usage"]["usage_coverage"], 0.5)

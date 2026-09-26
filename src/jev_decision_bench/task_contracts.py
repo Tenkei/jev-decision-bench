@@ -16,6 +16,7 @@ class NormalizedDecision:
     positive_probability: float | None = None
     score: float | None = None
     level_probabilities: dict[str, float] | None = None
+    partial_error: str | None = None
 
 
 class TaskOutputError(ValueError):
@@ -258,9 +259,18 @@ class ScoreContract(TaskContract):
         answer = max(range(len(criteria)), key=lambda index: (normalized[str(index)], -index))
         expected_score = sum(index * normalized[str(index)] for index in range(len(criteria)))
         rounding_tolerance = 0.005 + 0.005 * sum(range(len(criteria)))
-        if abs(score - expected_score) > rounding_tolerance:
-            raise TaskOutputError("Score does not match its level probabilities")
-        return NormalizedDecision(answer, normalized[str(answer)], score=score, level_probabilities=normalized)
+        partial_error = (
+            "Score does not match its level probabilities"
+            if abs(score - expected_score) > rounding_tolerance
+            else None
+        )
+        return NormalizedDecision(
+            answer,
+            normalized[str(answer)],
+            score=score,
+            level_probabilities=normalized,
+            partial_error=partial_error,
+        )
 
     def parse_llm_output(self, parsed: dict[str, Any], record: dict[str, Any]) -> NormalizedDecision:
         return self._decision(parsed.get("probabilities"), parsed.get("score"), record["criteria"])
