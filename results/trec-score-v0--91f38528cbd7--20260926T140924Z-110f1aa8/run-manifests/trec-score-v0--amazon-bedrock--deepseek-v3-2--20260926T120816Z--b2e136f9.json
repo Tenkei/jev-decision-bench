@@ -1,0 +1,40 @@
+{
+  "run_id": "trec-score-v0--amazon-bedrock--deepseek-v3-2--20260926T120816Z--b2e136f9",
+  "status": "completed",
+  "started_at": "2026-09-26T12:08:16.794920Z",
+  "finished_at": "2026-09-26T13:40:24.576494Z",
+  "experiment_id": "trec-score",
+  "experiment_version": "v0",
+  "experiment_package_hash": "91f38528cbd7de5e145824cbcfee7db6ec877ccc55a20624c7251bb8a524925a",
+  "task_type": "score",
+  "adapter_version": "openai-compatible-chat-completions-v2",
+  "model_config": {
+    "adapter": "openai_compatible_chat_completions",
+    "provider": "amazon-bedrock",
+    "model_id": "deepseek.v3.2",
+    "model_revision": null,
+    "endpoint": "https://bedrock-mantle.ap-northeast-1.api.aws/v1/chat/completions",
+    "api_key_env": "BEDROCK_API_KEY",
+    "response_format": "json_object",
+    "max_tokens": 1024,
+    "timeout_seconds": 60,
+    "max_retries": 2,
+    "model_config": {
+      "temperature": 0
+    },
+    "cost_basis": "unknown"
+  },
+  "model_config_sha256": "6195511ea494cdebf982e44f2ace57fc708edbb070c08947270c843f35c5c8f1",
+  "execution": {
+    "mode": "serial",
+    "logical_decisions_per_request": 1
+  },
+  "counts": {
+    "total": 1600,
+    "attempted": 1600,
+    "valid": 1040,
+    "partial": 560,
+    "invalid": 0,
+    "provider_error": 0
+  }
+}

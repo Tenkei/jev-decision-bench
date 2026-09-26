@@ -1,0 +1,38 @@
+{
+  "run_id": "banking77-choice-v0--amazon-bedrock--deepseek-v3-2--20260925T014932Z--d79ff96d",
+  "status": "completed",
+  "started_at": "2026-09-25T01:49:32.431684Z",
+  "finished_at": "2026-09-25T03:42:22.533696Z",
+  "experiment_id": "banking77-choice",
+  "experiment_version": "v0",
+  "experiment_package_hash": "175e210593f7a6fd8dfebd0fa2b1be04287d6e1bce4f8b246e6c6584a9885472",
+  "adapter_version": "openai-compatible-chat-completions-choice-v2",
+  "model_config": {
+    "adapter": "openai_compatible_chat_completions",
+    "provider": "amazon-bedrock",
+    "model_id": "deepseek.v3.2",
+    "model_revision": null,
+    "endpoint": "https://bedrock-mantle.ap-northeast-1.api.aws/v1/chat/completions",
+    "api_key_env": "BEDROCK_API_KEY",
+    "response_format": "json_object",
+    "max_tokens": 1024,
+    "timeout_seconds": 60,
+    "max_retries": 2,
+    "model_config": {
+      "temperature": 0
+    },
+    "cost_basis": "unknown"
+  },
+  "model_config_sha256": "6195511ea494cdebf982e44f2ace57fc708edbb070c08947270c843f35c5c8f1",
+  "execution": {
+    "mode": "serial",
+    "logical_decisions_per_request": 1
+  },
+  "counts": {
+    "total": 3080,
+    "attempted": 3080,
+    "valid": 3080,
+    "invalid": 0,
+    "provider_error": 0
+  }
+}

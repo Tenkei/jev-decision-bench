@@ -1,0 +1,502 @@
+{
+  "comparison_id": "hatecheck-noul-v0--1409f2a86b78--20260926T070758Z-2e6677d0",
+  "experiment_package_hash": "1409f2a86b7852dd328b446d0188290fefca2b5e82581afdbf6274a6654fe710",
+  "evaluation_config_sha256": "1845be06b42644113c71dd4a24908e58309f7d26c8348dde121dcbfa66159af1",
+  "baseline": {
+    "run_id": "hatecheck-noul-v0--typesafe--jev-latest--20260926T033145Z--4ef856af",
+    "provider": "typesafe",
+    "model_id": "jev-latest",
+    "model_revision": null,
+    "adapter_version": "typesafe-system-one-v1",
+    "provider_metrics": {
+      "total_records": 3728,
+      "attempted_records": 3728,
+      "completion_rate": 1.0,
+      "status_counts": {
+        "valid": 3728,
+        "invalid": 0,
+        "provider_error": 0
+      },
+      "provider_success_rate": 1.0,
+      "valid_output_rate": 1.0
+    },
+    "model_performance": {
+      "latency_ms": {
+        "p50": 233.588917,
+        "p95": 284.69525
+      },
+      "token_usage": {
+        "usage_record_count": 3728,
+        "usage_coverage": 1.0,
+        "input_token_record_count": 3728,
+        "input_tokens": 1349706.0,
+        "input_tokens_per_attempted": 362.0456008583691,
+        "output_token_record_count": 3728,
+        "output_tokens": 74560.0,
+        "output_tokens_per_attempted": 20.0,
+        "cached_input_token_record_count": 0,
+        "cached_input_tokens": null,
+        "reasoning_output_token_record_count": 0,
+        "reasoning_output_tokens": null,
+        "reported_total_tokens": 1424266.0,
+        "reported_total_tokens_per_attempted": 382.0456008583691
+      },
+      "cost_usd": {
+        "known_total": null,
+        "known_cost_record_count": 0,
+        "known_cost_coverage": 0.0,
+        "per_attempted": null
+      }
+    },
+    "model_quality": {
+      "metrics": {
+        "accuracy_on_valid": 0.9817596566523605,
+        "macro_f1_on_valid": 0.9789973223044088,
+        "precision_on_valid": 0.9956297179181566,
+        "recall_on_valid": 0.9777604369879048,
+        "auroc_on_valid": 0.9976054080937207,
+        "true_probability_brier_on_valid": 0.02223299356223176,
+        "true_probability_ece_10_bins": 0.06662553648068668,
+        "top_label_brier_on_valid": 0.02223299356223176,
+        "top_label_ece_10_bins": 0.06662553648068668
+      }
+    }
+  },
+  "runs": [
+    {
+      "run_id": "hatecheck-noul-v0--amazon-bedrock--deepseek-v3-2--20260926T033145Z--ab405102",
+      "provider": "amazon-bedrock",
+      "model_id": "deepseek.v3.2",
+      "model_revision": null,
+      "adapter_version": "openai-compatible-chat-completions-v2",
+      "provider_metrics": {
+        "total_records": 3728,
+        "attempted_records": 3728,
+        "completion_rate": 1.0,
+        "status_counts": {
+          "valid": 3728,
+          "invalid": 0,
+          "provider_error": 0
+        },
+        "provider_success_rate": 1.0,
+        "valid_output_rate": 1.0
+      },
+      "model_performance": {
+        "latency_ms": {
+          "p50": 1315.7705,
+          "p95": 2960.709584
+        },
+        "token_usage": {
+          "usage_record_count": 3728,
+          "usage_coverage": 1.0,
+          "input_token_record_count": 3728,
+          "input_tokens": 667392.0,
+          "input_tokens_per_attempted": 179.0214592274678,
+          "output_token_record_count": 3728,
+          "output_tokens": 59768.0,
+          "output_tokens_per_attempted": 16.032188841201716,
+          "cached_input_token_record_count": 3728,
+          "cached_input_tokens": 477184.0,
+          "reasoning_output_token_record_count": 0,
+          "reasoning_output_tokens": null,
+          "reported_total_tokens": 727160.0,
+          "reported_total_tokens_per_attempted": 195.05364806866953
+        },
+        "cost_usd": {
+          "known_total": null,
+          "known_cost_record_count": 0,
+          "known_cost_coverage": 0.0,
+          "per_attempted": null
+        }
+      },
+      "model_quality": {
+        "metrics": {
+          "accuracy_on_valid": 0.9721030042918455,
+          "macro_f1_on_valid": 0.966999942462346,
+          "precision_on_valid": 0.9673128088179399,
+          "recall_on_valid": 0.9929769801014436,
+          "auroc_on_valid": 0.9854834145206044,
+          "true_probability_brier_on_valid": 0.028134227467811163,
+          "true_probability_ece_10_bins": 0.060230686695278916,
+          "top_label_brier_on_valid": 0.028134227467811163,
+          "top_label_ece_10_bins": 0.060230686695278916
+        }
+      },
+      "relative_to_baseline": {
+        "baseline_run_id": "hatecheck-noul-v0--typesafe--jev-latest--20260926T033145Z--4ef856af",
+        "provider_metrics": {
+          "completion_rate_delta": 0.0,
+          "provider_success_rate_delta": 0.0,
+          "valid_output_rate_delta": 0.0
+        },
+        "model_performance": {
+          "p50_latency_ratio": 5.6328464419397095,
+          "p95_latency_ratio": 10.39957492792732,
+          "input_tokens_per_attempted_ratio": 0.49447212948597696,
+          "output_tokens_per_attempted_ratio": 0.8016094420600858,
+          "reported_total_tokens_per_attempted_ratio": 0.5105506976927063,
+          "cost_per_attempted_ratio": null
+        },
+        "model_quality": {
+          "accuracy_on_valid_delta": -0.00965665236051505,
+          "macro_f1_on_valid_delta": -0.011997379842062839,
+          "precision_on_valid_delta": -0.02831690910021667,
+          "recall_on_valid_delta": 0.015216543113538816,
+          "auroc_on_valid_delta": -0.012121993573116274,
+          "true_probability_brier_on_valid_delta": 0.005901233905579402,
+          "true_probability_ece_10_bins_delta": -0.006394849785407768,
+          "top_label_brier_on_valid_delta": 0.005901233905579402,
+          "top_label_ece_10_bins_delta": -0.006394849785407768
+        }
+      }
+    },
+    {
+      "run_id": "hatecheck-noul-v0--amazon-bedrock--global-anthropic-claude-haiku-4-5-20251001-v1-0--20260926T033145Z--3b294efe",
+      "provider": "amazon-bedrock",
+      "model_id": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "model_revision": null,
+      "adapter_version": "bedrock-converse-v1",
+      "provider_metrics": {
+        "total_records": 3728,
+        "attempted_records": 3728,
+        "completion_rate": 1.0,
+        "status_counts": {
+          "valid": 3588,
+          "invalid": 140,
+          "provider_error": 0
+        },
+        "provider_success_rate": 1.0,
+        "valid_output_rate": 0.9624463519313304
+      },
+      "model_performance": {
+        "latency_ms": {
+          "p50": 715.84975,
+          "p95": 915.09475
+        },
+        "token_usage": {
+          "usage_record_count": 3588,
+          "usage_coverage": 0.9624463519313304,
+          "input_token_record_count": 3588,
+          "input_tokens": 1303637.0,
+          "input_tokens_per_attempted": 349.6880364806867,
+          "output_token_record_count": 3588,
+          "output_tokens": 63452.0,
+          "output_tokens_per_attempted": 17.02038626609442,
+          "cached_input_token_record_count": 0,
+          "cached_input_tokens": null,
+          "reasoning_output_token_record_count": 0,
+          "reasoning_output_tokens": null,
+          "reported_total_tokens": 1367089.0,
+          "reported_total_tokens_per_attempted": 366.70842274678114
+        },
+        "cost_usd": {
+          "known_total": null,
+          "known_cost_record_count": 0,
+          "known_cost_coverage": 0.0,
+          "per_attempted": null
+        }
+      },
+      "model_quality": {
+        "metrics": {
+          "accuracy_on_valid": 0.9509476031215162,
+          "macro_f1_on_valid": 0.942315112540193,
+          "precision_on_valid": 0.9946125155408205,
+          "recall_on_valid": 0.9364026531408506,
+          "auroc_on_valid": 0.9934358554666312,
+          "true_probability_brier_on_valid": 0.04119729654403567,
+          "true_probability_ece_10_bins": 0.09250557413600895,
+          "top_label_brier_on_valid": 0.04119729654403567,
+          "top_label_ece_10_bins": 0.09250557413600895
+        }
+      },
+      "relative_to_baseline": {
+        "baseline_run_id": "hatecheck-noul-v0--typesafe--jev-latest--20260926T033145Z--4ef856af",
+        "provider_metrics": {
+          "completion_rate_delta": 0.0,
+          "provider_success_rate_delta": 0.0,
+          "valid_output_rate_delta": -0.037553648068669565
+        },
+        "model_performance": {
+          "p50_latency_ratio": 3.064570696220146,
+          "p95_latency_ratio": 3.2142958128033396,
+          "input_tokens_per_attempted_ratio": 0.9658673814890059,
+          "output_tokens_per_attempted_ratio": 0.851019313304721,
+          "reported_total_tokens_per_attempted_ratio": 0.9598551113345402,
+          "cost_per_attempted_ratio": null
+        },
+        "model_quality": {
+          "accuracy_on_valid_delta": -0.030812053530844374,
+          "macro_f1_on_valid_delta": -0.03668220976421588,
+          "precision_on_valid_delta": -0.0010172023773360461,
+          "recall_on_valid_delta": -0.04135778384705424,
+          "auroc_on_valid_delta": -0.004169552627089512,
+          "true_probability_brier_on_valid_delta": 0.01896430298180391,
+          "true_probability_ece_10_bins_delta": 0.025880037655322263,
+          "top_label_brier_on_valid_delta": 0.01896430298180391,
+          "top_label_ece_10_bins_delta": 0.025880037655322263
+        }
+      }
+    },
+    {
+      "run_id": "hatecheck-noul-v0--amazon-bedrock--global-anthropic-claude-sonnet-5--20260926T033145Z--c53494ca",
+      "provider": "amazon-bedrock",
+      "model_id": "global.anthropic.claude-sonnet-5",
+      "model_revision": null,
+      "adapter_version": "bedrock-converse-v1",
+      "provider_metrics": {
+        "total_records": 3728,
+        "attempted_records": 3728,
+        "completion_rate": 1.0,
+        "status_counts": {
+          "valid": 3727,
+          "invalid": 1,
+          "provider_error": 0
+        },
+        "provider_success_rate": 1.0,
+        "valid_output_rate": 0.9997317596566524
+      },
+      "model_performance": {
+        "latency_ms": {
+          "p50": 1735.22025,
+          "p95": 3207.41475
+        },
+        "token_usage": {
+          "usage_record_count": 3727,
+          "usage_coverage": 0.9997317596566524,
+          "input_token_record_count": 3727,
+          "input_tokens": 989384.0,
+          "input_tokens_per_attempted": 265.39270386266094,
+          "output_token_record_count": 3727,
+          "output_tokens": 72664.0,
+          "output_tokens_per_attempted": 19.491416309012877,
+          "cached_input_token_record_count": 0,
+          "cached_input_tokens": null,
+          "reasoning_output_token_record_count": 0,
+          "reasoning_output_tokens": null,
+          "reported_total_tokens": 1062048.0,
+          "reported_total_tokens_per_attempted": 284.8841201716738
+        },
+        "cost_usd": {
+          "known_total": null,
+          "known_cost_record_count": 0,
+          "known_cost_coverage": 0.0,
+          "per_attempted": null
+        }
+      },
+      "model_quality": {
+        "metrics": {
+          "accuracy_on_valid": 0.9742420177086129,
+          "macro_f1_on_valid": 0.9695802904441546,
+          "precision_on_valid": 0.9702630575676706,
+          "recall_on_valid": 0.9929769801014436,
+          "auroc_on_valid": 0.9955524561128295,
+          "true_probability_brier_on_valid": 0.022969841695733833,
+          "true_probability_ece_10_bins": 0.050217332975583666,
+          "top_label_brier_on_valid": 0.022969841695733833,
+          "top_label_ece_10_bins": 0.050217332975583666
+        }
+      },
+      "relative_to_baseline": {
+        "baseline_run_id": "hatecheck-noul-v0--typesafe--jev-latest--20260926T033145Z--4ef856af",
+        "provider_metrics": {
+          "completion_rate_delta": 0.0,
+          "provider_success_rate_delta": 0.0,
+          "valid_output_rate_delta": -0.00026824034334760327
+        },
+        "model_performance": {
+          "p50_latency_ratio": 7.428521319785048,
+          "p95_latency_ratio": 11.26613369910457,
+          "input_tokens_per_attempted_ratio": 0.7330366761353955,
+          "output_tokens_per_attempted_ratio": 0.9745708154506438,
+          "reported_total_tokens_per_attempted_ratio": 0.7456809331964676,
+          "cost_per_attempted_ratio": null
+        },
+        "model_quality": {
+          "accuracy_on_valid_delta": -0.007517638943747684,
+          "macro_f1_on_valid_delta": -0.009417031860254221,
+          "precision_on_valid_delta": -0.02536666035048596,
+          "recall_on_valid_delta": 0.015216543113538816,
+          "auroc_on_valid_delta": -0.002052951980891171,
+          "true_probability_brier_on_valid_delta": 0.0007368481335020723,
+          "true_probability_ece_10_bins_delta": -0.016408203505103018,
+          "top_label_brier_on_valid_delta": 0.0007368481335020723,
+          "top_label_ece_10_bins_delta": -0.016408203505103018
+        }
+      }
+    },
+    {
+      "run_id": "hatecheck-noul-v0--amazon-bedrock--global-openai-gpt-5-6-luna--20260926T033145Z--b09dcade",
+      "provider": "amazon-bedrock",
+      "model_id": "global.openai.gpt-5.6-luna",
+      "model_revision": null,
+      "adapter_version": "openai-compatible-responses-v1",
+      "provider_metrics": {
+        "total_records": 3728,
+        "attempted_records": 3728,
+        "completion_rate": 1.0,
+        "status_counts": {
+          "valid": 2730,
+          "invalid": 998,
+          "provider_error": 0
+        },
+        "provider_success_rate": 1.0,
+        "valid_output_rate": 0.7322961373390557
+      },
+      "model_performance": {
+        "latency_ms": {
+          "p50": 900.481875,
+          "p95": 1249.654208
+        },
+        "token_usage": {
+          "usage_record_count": 2730,
+          "usage_coverage": 0.7322961373390557,
+          "input_token_record_count": 2730,
+          "input_tokens": 577197.0,
+          "input_tokens_per_attempted": 154.82752145922746,
+          "output_token_record_count": 2730,
+          "output_tokens": 153038.0,
+          "output_tokens_per_attempted": 41.05096566523605,
+          "cached_input_token_record_count": 2730,
+          "cached_input_tokens": 0.0,
+          "reasoning_output_token_record_count": 2730,
+          "reasoning_output_tokens": 87619.0,
+          "reported_total_tokens": 730235.0,
+          "reported_total_tokens_per_attempted": 195.87848712446353
+        },
+        "cost_usd": {
+          "known_total": null,
+          "known_cost_record_count": 0,
+          "known_cost_coverage": 0.0,
+          "per_attempted": null
+        }
+      },
+      "model_quality": {
+        "metrics": {
+          "accuracy_on_valid": 0.9996336996336996,
+          "macro_f1_on_valid": 0.9985683382497541,
+          "precision_on_valid": 1.0,
+          "recall_on_valid": 0.9996067636649626,
+          "auroc_on_valid": 0.9999978971318982,
+          "true_probability_brier_on_valid": 0.00183141721978022,
+          "true_probability_ece_10_bins": 0.01538794871794869,
+          "top_label_brier_on_valid": 0.00183141721978022,
+          "top_label_ece_10_bins": 0.01538794871794869
+        }
+      },
+      "relative_to_baseline": {
+        "baseline_run_id": "hatecheck-noul-v0--typesafe--jev-latest--20260926T033145Z--4ef856af",
+        "provider_metrics": {
+          "completion_rate_delta": 0.0,
+          "provider_success_rate_delta": 0.0,
+          "valid_output_rate_delta": -0.26770386266094426
+        },
+        "model_performance": {
+          "p50_latency_ratio": 3.8549854443650675,
+          "p95_latency_ratio": 4.389445233104522,
+          "input_tokens_per_attempted_ratio": 0.42764646523020566,
+          "output_tokens_per_attempted_ratio": 2.0525482832618023,
+          "reported_total_tokens_per_attempted_ratio": 0.5127097045074446,
+          "cost_per_attempted_ratio": null
+        },
+        "model_quality": {
+          "accuracy_on_valid_delta": 0.0178740429813391,
+          "macro_f1_on_valid_delta": 0.01957101594534527,
+          "precision_on_valid_delta": 0.004370282081843424,
+          "recall_on_valid_delta": 0.02184632667705777,
+          "auroc_on_valid_delta": 0.00239248903817757,
+          "true_probability_brier_on_valid_delta": -0.02040157634245154,
+          "true_probability_ece_10_bins_delta": -0.05123758776273799,
+          "top_label_brier_on_valid_delta": -0.02040157634245154,
+          "top_label_ece_10_bins_delta": -0.05123758776273799
+        }
+      }
+    },
+    {
+      "run_id": "hatecheck-noul-v0--amazon-bedrock--global-openai-gpt-5-6-sol--20260926T033145Z--afdec27f",
+      "provider": "amazon-bedrock",
+      "model_id": "global.openai.gpt-5.6-sol",
+      "model_revision": null,
+      "adapter_version": "openai-compatible-responses-v1",
+      "provider_metrics": {
+        "total_records": 3728,
+        "attempted_records": 3728,
+        "completion_rate": 1.0,
+        "status_counts": {
+          "valid": 3728,
+          "invalid": 0,
+          "provider_error": 0
+        },
+        "provider_success_rate": 1.0,
+        "valid_output_rate": 1.0
+      },
+      "model_performance": {
+        "latency_ms": {
+          "p50": 859.620833,
+          "p95": 1744.853333
+        },
+        "token_usage": {
+          "usage_record_count": 3728,
+          "usage_coverage": 1.0,
+          "input_token_record_count": 3728,
+          "input_tokens": 669949.0,
+          "input_tokens_per_attempted": 179.70734978540773,
+          "output_token_record_count": 3728,
+          "output_tokens": 105204.0,
+          "output_tokens_per_attempted": 28.219957081545065,
+          "cached_input_token_record_count": 3728,
+          "cached_input_tokens": 0.0,
+          "reasoning_output_token_record_count": 3728,
+          "reasoning_output_tokens": 29098.0,
+          "reported_total_tokens": 775153.0,
+          "reported_total_tokens_per_attempted": 207.9273068669528
+        },
+        "cost_usd": {
+          "known_total": null,
+          "known_cost_record_count": 0,
+          "known_cost_coverage": 0.0,
+          "per_attempted": null
+        }
+      },
+      "model_quality": {
+        "metrics": {
+          "accuracy_on_valid": 0.9975858369098712,
+          "macro_f1_on_valid": 0.9971966793617633,
+          "precision_on_valid": 1.0,
+          "recall_on_valid": 0.9964884900507218,
+          "auroc_on_valid": 0.999995981104493,
+          "true_probability_brier_on_valid": 0.0023165920064377684,
+          "true_probability_ece_10_bins": 0.015324839055793994,
+          "top_label_brier_on_valid": 0.0023165920064377684,
+          "top_label_ece_10_bins": 0.015324839055793994
+        }
+      },
+      "relative_to_baseline": {
+        "baseline_run_id": "hatecheck-noul-v0--typesafe--jev-latest--20260926T033145Z--4ef856af",
+        "provider_metrics": {
+          "completion_rate_delta": 0.0,
+          "provider_success_rate_delta": 0.0,
+          "valid_output_rate_delta": 0.0
+        },
+        "model_performance": {
+          "p50_latency_ratio": 3.6800583008824854,
+          "p95_latency_ratio": 6.12884596072467,
+          "input_tokens_per_attempted_ratio": 0.49636661613714395,
+          "output_tokens_per_attempted_ratio": 1.4109978540772532,
+          "reported_total_tokens_per_attempted_ratio": 0.5442473526714813,
+          "cost_per_attempted_ratio": null
+        },
+        "model_quality": {
+          "accuracy_on_valid_delta": 0.015826180257510702,
+          "macro_f1_on_valid_delta": 0.018199357057354426,
+          "precision_on_valid_delta": 0.004370282081843424,
+          "recall_on_valid_delta": 0.018728053062816996,
+          "auroc_on_valid_delta": 0.002390573010772279,
+          "true_probability_brier_on_valid_delta": -0.01991640155579399,
+          "true_probability_ece_10_bins_delta": -0.05130069742489269,
+          "top_label_brier_on_valid_delta": -0.01991640155579399,
+          "top_label_ece_10_bins_delta": -0.05130069742489269
+        }
+      }
+    }
+  ]
+}

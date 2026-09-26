@@ -1,0 +1,32 @@
+{
+  "experiment_id": "trec-score",
+  "experiment_version": "v0",
+  "experiment_package_hash": "91f38528cbd7de5e145824cbcfee7db6ec877ccc55a20624c7251bb8a524925a",
+  "package_format_version": "pretty-json-v3",
+  "pipeline_version": "b0be14b9d12e63b93d2029b15117718b33061061",
+  "dataset": {
+    "name": "TREC 2019 Deep Learning Passage Ranking",
+    "source_repository": "https://trec.nist.gov/data/deep2019.html",
+    "revision": "trec-dl-2019-passage",
+    "split": "NIST-judged TREC 2019 test candidates; deterministic balanced sample",
+    "row_count": 1600,
+    "license": "NOASSERTION",
+    "file_hashes": {
+      "queries.tsv.gz": "d66f01dfa8a3e60fe375ba645efc004f97ff4dd2a424536b8d5810c16182a3b5",
+      "top1000.tsv.gz": "360406fb796f5d22735c940d1bfa21558aca7282e1464feb402f3f58ecda5d9e",
+      "qrels.txt": "8a1f10d550732e4cd91d7fc49846a3784de4040972f583e69285a88f3c5fee92"
+    }
+  },
+  "rubric_version": "trec-dl-2019-passage-relevance-v1",
+  "rubric_sha256": "4d3c71b666403fbbbe5014c83a4811a75031c96bc843c3653cc6c30998d3babe",
+  "task": {
+    "task_type": "score",
+    "record_set": "score",
+    "contract_version": "score-level-distribution-v1"
+  },
+  "record_sets": [
+    "score"
+  ],
+  "records_sha256": "61867a672f8eb79ff3b8273a33e1eaaae93c94cd0914ffd70671bc4300fde57e",
+  "preflight_sha256": "acf056125e383f629325c2fdc7e6596b2e6543417b6c37569f9617c5ca8699ba"
+}

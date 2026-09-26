@@ -1,0 +1,30 @@
+{
+  "experiment_id": "hatecheck-noul",
+  "experiment_version": "v0",
+  "experiment_package_hash": "1409f2a86b7852dd328b446d0188290fefca2b5e82581afdbf6274a6654fe710",
+  "package_format_version": "pretty-json-v3",
+  "pipeline_version": "7075f92dc1d51f45e54e4aa5763685d5cd56cb20-dirty",
+  "dataset": {
+    "name": "HateCheck",
+    "source_repository": "https://github.com/paul-rottger/hatecheck-data",
+    "revision": "3490854f969111a32c55c05f0d9788b471337fa9",
+    "split": "test_suite_cases.csv",
+    "row_count": 3728,
+    "license": "CC-BY-4.0",
+    "file_hashes": {
+      "test_suite_cases.csv": "ecf0dc1e93fccc90b6f880e632b19e635c0f0a68b3157915a9e20b6938f121cf"
+    }
+  },
+  "rubric_version": "hatecheck-hateful-content-v1",
+  "rubric_sha256": "e398ac39dfd39a08521b8af5a63bf4b256e7e3233b635cb371f8fef5fda9f6ff",
+  "task": {
+    "task_type": "noul",
+    "record_set": "noul",
+    "contract_version": "noul-boolean-probability-v1"
+  },
+  "record_sets": [
+    "noul"
+  ],
+  "records_sha256": "f2e8edb4424fd40a0c6e853edfa316bd13de7595e10c91d1634e72f7bbad0509",
+  "preflight_sha256": "9618d2dbb40c04409fcc2dee6fc111a6b807b2f0038b46b493c585e84bb99019"
+}

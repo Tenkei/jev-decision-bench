@@ -1,0 +1,35 @@
+{
+  "run_id": "banking77-choice-v0--amazon-bedrock--global-openai-gpt-5-6-luna--20260925T014932Z--36e38fea",
+  "status": "completed",
+  "started_at": "2026-09-25T01:49:32.414031Z",
+  "finished_at": "2026-09-25T02:42:01.551939Z",
+  "experiment_id": "banking77-choice",
+  "experiment_version": "v0",
+  "experiment_package_hash": "175e210593f7a6fd8dfebd0fa2b1be04287d6e1bce4f8b246e6c6584a9885472",
+  "adapter_version": "openai-compatible-responses-choice-v1",
+  "model_config": {
+    "adapter": "openai_compatible_responses",
+    "provider": "amazon-bedrock",
+    "model_id": "global.openai.gpt-5.6-luna",
+    "model_revision": null,
+    "endpoint": "https://bedrock-runtime.ap-northeast-1.amazonaws.com/openai/v1/responses",
+    "api_key_env": "BEDROCK_API_KEY",
+    "response_format": "json_schema",
+    "max_tokens": 1024,
+    "timeout_seconds": 60,
+    "max_retries": 2,
+    "cost_basis": "unknown"
+  },
+  "model_config_sha256": "6a9b5b94bce5cc75377bf3aa77a0e6d9439141f341e03ad285f5261493517d52",
+  "execution": {
+    "mode": "serial",
+    "logical_decisions_per_request": 1
+  },
+  "counts": {
+    "total": 3080,
+    "attempted": 3080,
+    "valid": 3080,
+    "invalid": 0,
+    "provider_error": 0
+  }
+}

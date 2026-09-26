@@ -1,0 +1,14 @@
+{
+  "evaluation_id": "banking77-choice-default",
+  "evaluation_version": "v0",
+  "task_type": "choice",
+  "invalid_prediction_policy": "exclude_from_correctness",
+  "metrics": [
+    "accuracy_on_valid",
+    "macro_f1_on_valid",
+    "top_label_brier_on_valid",
+    "top_label_ece_10_bins",
+    "confusion_matrix"
+  ],
+  "calibration_bins": 10
+}

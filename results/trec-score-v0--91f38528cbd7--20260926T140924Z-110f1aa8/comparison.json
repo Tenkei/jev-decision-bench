@@ -1,0 +1,508 @@
+{
+  "comparison_id": "trec-score-v0--91f38528cbd7--20260926T140924Z-110f1aa8",
+  "experiment_package_hash": "91f38528cbd7de5e145824cbcfee7db6ec877ccc55a20624c7251bb8a524925a",
+  "evaluation_config_sha256": "02b22a73abdc8cf7303bd98e3a659210624eb9dc20283775c01e136482015f27",
+  "baseline": {
+    "run_id": "trec-score-v0--typesafe--jev-latest--20260926T115138Z--eaf6868f",
+    "provider": "typesafe",
+    "model_id": "jev-latest",
+    "model_revision": null,
+    "adapter_version": "typesafe-system-one-v1",
+    "provider_metrics": {
+      "total_records": 1600,
+      "attempted_records": 1600,
+      "completion_rate": 1.0,
+      "status_counts": {
+        "valid": 1588,
+        "partial": 0,
+        "invalid": 12,
+        "provider_error": 0
+      },
+      "provider_success_rate": 1.0,
+      "valid_output_rate": 0.9925,
+      "partial_output_rate": 0.0
+    },
+    "model_performance": {
+      "latency_ms": {
+        "p50": 239.386709,
+        "p95": 289.57
+      },
+      "token_usage": {
+        "usage_record_count": 1588,
+        "usage_coverage": 0.9925,
+        "input_token_record_count": 1588,
+        "input_tokens": 747626.0,
+        "input_tokens_per_attempted": 467.26625,
+        "output_token_record_count": 1588,
+        "output_tokens": 26996.0,
+        "output_tokens_per_attempted": 16.8725,
+        "cached_input_token_record_count": 0,
+        "cached_input_tokens": null,
+        "reasoning_output_token_record_count": 0,
+        "reasoning_output_tokens": null,
+        "reported_total_tokens": 774622.0,
+        "reported_total_tokens_per_attempted": 484.13875
+      },
+      "cost_usd": {
+        "known_total": null,
+        "known_cost_record_count": 0,
+        "known_cost_coverage": 0.0,
+        "per_attempted": null
+      }
+    },
+    "model_quality": {
+      "metrics": {
+        "score_nearest_tier_accuracy_on_usable": 0.473551637279597,
+        "score_ordinal_mae_on_usable": 0.6705415617128463,
+        "score_distribution_consistency_rate": 1.0,
+        "malformed_response_rate": 0.0075,
+        "level_probability_brier_on_usable": 0.7714347607052896,
+        "level_probability_log_loss_on_usable": 4.60838527231846,
+        "level_probability_ece_10_bins_on_usable": 0.15252833753148615,
+        "mean_level_distribution_entropy_on_usable": 0.5188129107020558
+      }
+    }
+  },
+  "runs": [
+    {
+      "run_id": "trec-score-v0--amazon-bedrock--global-anthropic-claude-haiku-4-5-20251001-v1-0--20260926T120816Z--14b04c9c",
+      "provider": "amazon-bedrock",
+      "model_id": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "model_revision": null,
+      "adapter_version": "bedrock-converse-v1",
+      "provider_metrics": {
+        "total_records": 1600,
+        "attempted_records": 1600,
+        "completion_rate": 1.0,
+        "status_counts": {
+          "valid": 947,
+          "partial": 651,
+          "invalid": 2,
+          "provider_error": 0
+        },
+        "provider_success_rate": 1.0,
+        "valid_output_rate": 0.591875,
+        "partial_output_rate": 0.406875
+      },
+      "model_performance": {
+        "latency_ms": {
+          "p50": 937.154208,
+          "p95": 1130.437292
+        },
+        "token_usage": {
+          "usage_record_count": 1598,
+          "usage_coverage": 0.99875,
+          "input_token_record_count": 1598,
+          "input_tokens": 975694.0,
+          "input_tokens_per_attempted": 609.80875,
+          "output_token_record_count": 1598,
+          "output_tokens": 62666.0,
+          "output_tokens_per_attempted": 39.16625,
+          "cached_input_token_record_count": 0,
+          "cached_input_tokens": null,
+          "reasoning_output_token_record_count": 0,
+          "reasoning_output_tokens": null,
+          "reported_total_tokens": 1038360.0,
+          "reported_total_tokens_per_attempted": 648.975
+        },
+        "cost_usd": {
+          "known_total": null,
+          "known_cost_record_count": 0,
+          "known_cost_coverage": 0.0,
+          "per_attempted": null
+        }
+      },
+      "model_quality": {
+        "metrics": {
+          "score_nearest_tier_accuracy_on_usable": 0.4455569461827284,
+          "score_ordinal_mae_on_usable": 0.7271902377972466,
+          "score_distribution_consistency_rate": 0.5926157697121401,
+          "malformed_response_rate": 0.00125,
+          "level_probability_brier_on_usable": 0.791488986232791,
+          "level_probability_log_loss_on_usable": 2.97264677384742,
+          "level_probability_ece_10_bins_on_usable": 0.1448560700876095,
+          "mean_level_distribution_entropy_on_usable": 0.7444392719950537
+        }
+      },
+      "relative_to_baseline": {
+        "baseline_run_id": "trec-score-v0--typesafe--jev-latest--20260926T115138Z--eaf6868f",
+        "provider_metrics": {
+          "completion_rate_delta": 0.0,
+          "provider_success_rate_delta": 0.0,
+          "valid_output_rate_delta": -0.400625,
+          "partial_output_rate_delta": 0.406875
+        },
+        "model_performance": {
+          "p50_latency_ratio": 3.9148130316625056,
+          "p95_latency_ratio": 3.903848091998481,
+          "input_tokens_per_attempted_ratio": 1.3050562714512337,
+          "output_tokens_per_attempted_ratio": 2.3213068602755964,
+          "reported_total_tokens_per_attempted_ratio": 1.3404731598121407,
+          "cost_per_attempted_ratio": null
+        },
+        "model_quality": {
+          "score_nearest_tier_accuracy_on_usable_delta": -0.027994691096868585,
+          "score_ordinal_mae_on_usable_delta": 0.05664867608440027,
+          "score_distribution_consistency_rate_delta": -0.40738423028785986,
+          "malformed_response_rate_delta": -0.0062499999999999995,
+          "level_probability_brier_on_usable_delta": 0.020054225527501357,
+          "level_probability_log_loss_on_usable_delta": -1.6357384984710404,
+          "level_probability_ece_10_bins_on_usable_delta": -0.00767226744387664,
+          "mean_level_distribution_entropy_on_usable_delta": 0.22562636129299785
+        }
+      }
+    },
+    {
+      "run_id": "trec-score-v0--amazon-bedrock--global-anthropic-claude-sonnet-5--20260926T120816Z--6211c915",
+      "provider": "amazon-bedrock",
+      "model_id": "global.anthropic.claude-sonnet-5",
+      "model_revision": null,
+      "adapter_version": "bedrock-converse-v1",
+      "provider_metrics": {
+        "total_records": 1600,
+        "attempted_records": 1600,
+        "completion_rate": 1.0,
+        "status_counts": {
+          "valid": 231,
+          "partial": 1368,
+          "invalid": 1,
+          "provider_error": 0
+        },
+        "provider_success_rate": 1.0,
+        "valid_output_rate": 0.144375,
+        "partial_output_rate": 0.855
+      },
+      "model_performance": {
+        "latency_ms": {
+          "p50": 2047.196334,
+          "p95": 3495.306375
+        },
+        "token_usage": {
+          "usage_record_count": 1599,
+          "usage_coverage": 0.999375,
+          "input_token_record_count": 1599,
+          "input_tokens": 728087.0,
+          "input_tokens_per_attempted": 455.054375,
+          "output_token_record_count": 1599,
+          "output_tokens": 70668.0,
+          "output_tokens_per_attempted": 44.1675,
+          "cached_input_token_record_count": 0,
+          "cached_input_tokens": null,
+          "reasoning_output_token_record_count": 0,
+          "reasoning_output_tokens": null,
+          "reported_total_tokens": 798755.0,
+          "reported_total_tokens_per_attempted": 499.221875
+        },
+        "cost_usd": {
+          "known_total": null,
+          "known_cost_record_count": 0,
+          "known_cost_coverage": 0.0,
+          "per_attempted": null
+        }
+      },
+      "model_quality": {
+        "metrics": {
+          "score_nearest_tier_accuracy_on_usable": 0.4740462789243277,
+          "score_ordinal_mae_on_usable": 0.6722951844903065,
+          "score_distribution_consistency_rate": 0.14446529080675422,
+          "malformed_response_rate": 0.000625,
+          "level_probability_brier_on_usable": 0.6828630306441525,
+          "level_probability_log_loss_on_usable": 2.0965017287211682,
+          "level_probability_ece_10_bins_on_usable": 0.08318949343339589,
+          "mean_level_distribution_entropy_on_usable": 0.9250809427155771
+        }
+      },
+      "relative_to_baseline": {
+        "baseline_run_id": "trec-score-v0--typesafe--jev-latest--20260926T115138Z--eaf6868f",
+        "provider_metrics": {
+          "completion_rate_delta": 0.0,
+          "provider_success_rate_delta": 0.0,
+          "valid_output_rate_delta": -0.848125,
+          "partial_output_rate_delta": 0.855
+        },
+        "model_performance": {
+          "p50_latency_ratio": 8.551837913440716,
+          "p95_latency_ratio": 12.07067850606071,
+          "input_tokens_per_attempted_ratio": 0.973865274883431,
+          "output_tokens_per_attempted_ratio": 2.6177211438731662,
+          "reported_total_tokens_per_attempted_ratio": 1.0311545502193327,
+          "cost_per_attempted_ratio": null
+        },
+        "model_quality": {
+          "score_nearest_tier_accuracy_on_usable_delta": 0.0004946416447307311,
+          "score_ordinal_mae_on_usable_delta": 0.001753622777460162,
+          "score_distribution_consistency_rate_delta": -0.8555347091932458,
+          "malformed_response_rate_delta": -0.006875,
+          "level_probability_brier_on_usable_delta": -0.08857173006113706,
+          "level_probability_log_loss_on_usable_delta": -2.511883543597292,
+          "level_probability_ece_10_bins_on_usable_delta": -0.06933884409809025,
+          "mean_level_distribution_entropy_on_usable_delta": 0.40626803201352124
+        }
+      }
+    },
+    {
+      "run_id": "trec-score-v0--amazon-bedrock--deepseek-v3-2--20260926T120816Z--b2e136f9",
+      "provider": "amazon-bedrock",
+      "model_id": "deepseek.v3.2",
+      "model_revision": null,
+      "adapter_version": "openai-compatible-chat-completions-v2",
+      "provider_metrics": {
+        "total_records": 1600,
+        "attempted_records": 1600,
+        "completion_rate": 1.0,
+        "status_counts": {
+          "valid": 1040,
+          "partial": 560,
+          "invalid": 0,
+          "provider_error": 0
+        },
+        "provider_success_rate": 1.0,
+        "valid_output_rate": 0.65,
+        "partial_output_rate": 0.35
+      },
+      "model_performance": {
+        "latency_ms": {
+          "p50": 2850.559125,
+          "p95": 7020.163708
+        },
+        "token_usage": {
+          "usage_record_count": 1600,
+          "usage_coverage": 1.0,
+          "input_token_record_count": 1600,
+          "input_tokens": 492612.0,
+          "input_tokens_per_attempted": 307.8825,
+          "output_token_record_count": 1600,
+          "output_tokens": 89600.0,
+          "output_tokens_per_attempted": 56.0,
+          "cached_input_token_record_count": 1600,
+          "cached_input_tokens": 312576.0,
+          "reasoning_output_token_record_count": 0,
+          "reasoning_output_tokens": null,
+          "reported_total_tokens": 582212.0,
+          "reported_total_tokens_per_attempted": 363.8825
+        },
+        "cost_usd": {
+          "known_total": null,
+          "known_cost_record_count": 0,
+          "known_cost_coverage": 0.0,
+          "per_attempted": null
+        }
+      },
+      "model_quality": {
+        "metrics": {
+          "score_nearest_tier_accuracy_on_usable": 0.42875,
+          "score_ordinal_mae_on_usable": 0.7650625,
+          "score_distribution_consistency_rate": 0.65,
+          "malformed_response_rate": 0.0,
+          "level_probability_brier_on_usable": 0.91098125,
+          "level_probability_log_loss_on_usable": 13.245010843287213,
+          "level_probability_ece_10_bins_on_usable": 0.205625,
+          "mean_level_distribution_entropy_on_usable": 0.30028386576633986
+        }
+      },
+      "relative_to_baseline": {
+        "baseline_run_id": "trec-score-v0--typesafe--jev-latest--20260926T115138Z--eaf6868f",
+        "provider_metrics": {
+          "completion_rate_delta": 0.0,
+          "provider_success_rate_delta": 0.0,
+          "valid_output_rate_delta": -0.3425,
+          "partial_output_rate_delta": 0.35
+        },
+        "model_performance": {
+          "p50_latency_ratio": 11.90775852555791,
+          "p95_latency_ratio": 24.243408184549505,
+          "input_tokens_per_attempted_ratio": 0.6589016433350364,
+          "output_tokens_per_attempted_ratio": 3.31901022373685,
+          "reported_total_tokens_per_attempted_ratio": 0.751607881005187,
+          "cost_per_attempted_ratio": null
+        },
+        "model_quality": {
+          "score_nearest_tier_accuracy_on_usable_delta": -0.04480163727959696,
+          "score_ordinal_mae_on_usable_delta": 0.09452093828715369,
+          "score_distribution_consistency_rate_delta": -0.35,
+          "malformed_response_rate_delta": -0.0075,
+          "level_probability_brier_on_usable_delta": 0.13954648929471036,
+          "level_probability_log_loss_on_usable_delta": 8.636625570968754,
+          "level_probability_ece_10_bins_on_usable_delta": 0.053096662468513856,
+          "mean_level_distribution_entropy_on_usable_delta": -0.21852904493571595
+        }
+      }
+    },
+    {
+      "run_id": "trec-score-v0--amazon-bedrock--global-openai-gpt-5-6-luna--20260926T120816Z--c90f69c3",
+      "provider": "amazon-bedrock",
+      "model_id": "global.openai.gpt-5.6-luna",
+      "model_revision": null,
+      "adapter_version": "openai-compatible-responses-v1",
+      "provider_metrics": {
+        "total_records": 1600,
+        "attempted_records": 1600,
+        "completion_rate": 1.0,
+        "status_counts": {
+          "valid": 1577,
+          "partial": 23,
+          "invalid": 0,
+          "provider_error": 0
+        },
+        "provider_success_rate": 1.0,
+        "valid_output_rate": 0.985625,
+        "partial_output_rate": 0.014375
+      },
+      "model_performance": {
+        "latency_ms": {
+          "p50": 1479.056667,
+          "p95": 2077.628291
+        },
+        "token_usage": {
+          "usage_record_count": 1600,
+          "usage_coverage": 1.0,
+          "input_token_record_count": 1600,
+          "input_tokens": 588218.0,
+          "input_tokens_per_attempted": 367.63625,
+          "output_token_record_count": 1600,
+          "output_tokens": 236628.0,
+          "output_tokens_per_attempted": 147.8925,
+          "cached_input_token_record_count": 1600,
+          "cached_input_tokens": 0.0,
+          "reasoning_output_token_record_count": 1600,
+          "reasoning_output_tokens": 166898.0,
+          "reported_total_tokens": 824846.0,
+          "reported_total_tokens_per_attempted": 515.52875
+        },
+        "cost_usd": {
+          "known_total": null,
+          "known_cost_record_count": 0,
+          "known_cost_coverage": 0.0,
+          "per_attempted": null
+        }
+      },
+      "model_quality": {
+        "metrics": {
+          "score_nearest_tier_accuracy_on_usable": 0.4525,
+          "score_ordinal_mae_on_usable": 0.6982599999999999,
+          "score_distribution_consistency_rate": 0.985625,
+          "malformed_response_rate": 0.0,
+          "level_probability_brier_on_usable": 0.8688483275,
+          "level_probability_log_loss_on_usable": 2.803222710054101,
+          "level_probability_ece_10_bins_on_usable": 0.19052468749999998,
+          "mean_level_distribution_entropy_on_usable": 0.5048834752317461
+        }
+      },
+      "relative_to_baseline": {
+        "baseline_run_id": "trec-score-v0--typesafe--jev-latest--20260926T115138Z--eaf6868f",
+        "provider_metrics": {
+          "completion_rate_delta": 0.0,
+          "provider_success_rate_delta": 0.0,
+          "valid_output_rate_delta": -0.0068750000000000755,
+          "partial_output_rate_delta": 0.014375
+        },
+        "model_performance": {
+          "p50_latency_ratio": 6.178524585506541,
+          "p95_latency_ratio": 7.174874092620092,
+          "input_tokens_per_attempted_ratio": 0.7867810910802995,
+          "output_tokens_per_attempted_ratio": 8.765298562750038,
+          "reported_total_tokens_per_attempted_ratio": 1.0648367849092846,
+          "cost_per_attempted_ratio": null
+        },
+        "model_quality": {
+          "score_nearest_tier_accuracy_on_usable_delta": -0.02105163727959697,
+          "score_ordinal_mae_on_usable_delta": 0.02771843828715359,
+          "score_distribution_consistency_rate_delta": -0.014375000000000027,
+          "malformed_response_rate_delta": -0.0075,
+          "level_probability_brier_on_usable_delta": 0.09741356679471036,
+          "level_probability_log_loss_on_usable_delta": -1.8051625622643592,
+          "level_probability_ece_10_bins_on_usable_delta": 0.03799634996851384,
+          "mean_level_distribution_entropy_on_usable_delta": -0.01392943547030967
+        }
+      }
+    },
+    {
+      "run_id": "trec-score-v0--amazon-bedrock--global-openai-gpt-5-6-sol--20260926T120816Z--de02b42c",
+      "provider": "amazon-bedrock",
+      "model_id": "global.openai.gpt-5.6-sol",
+      "model_revision": null,
+      "adapter_version": "openai-compatible-responses-v1",
+      "provider_metrics": {
+        "total_records": 1600,
+        "attempted_records": 1600,
+        "completion_rate": 1.0,
+        "status_counts": {
+          "valid": 1597,
+          "partial": 3,
+          "invalid": 0,
+          "provider_error": 0
+        },
+        "provider_success_rate": 1.0,
+        "valid_output_rate": 0.998125,
+        "partial_output_rate": 0.001875
+      },
+      "model_performance": {
+        "latency_ms": {
+          "p50": 1791.480042,
+          "p95": 2509.384791
+        },
+        "token_usage": {
+          "usage_record_count": 1600,
+          "usage_coverage": 1.0,
+          "input_token_record_count": 1600,
+          "input_tokens": 493818.0,
+          "input_tokens_per_attempted": 308.63625,
+          "output_token_record_count": 1600,
+          "output_tokens": 187406.0,
+          "output_tokens_per_attempted": 117.12875,
+          "cached_input_token_record_count": 1600,
+          "cached_input_tokens": 0.0,
+          "reasoning_output_token_record_count": 1600,
+          "reasoning_output_tokens": 118784.0,
+          "reported_total_tokens": 681224.0,
+          "reported_total_tokens_per_attempted": 425.765
+        },
+        "cost_usd": {
+          "known_total": null,
+          "known_cost_record_count": 0,
+          "known_cost_coverage": 0.0,
+          "per_attempted": null
+        }
+      },
+      "model_quality": {
+        "metrics": {
+          "score_nearest_tier_accuracy_on_usable": 0.458125,
+          "score_ordinal_mae_on_usable": 0.69067571875,
+          "score_distribution_consistency_rate": 0.998125,
+          "malformed_response_rate": 0.0,
+          "level_probability_brier_on_usable": 0.812556866434375,
+          "level_probability_log_loss_on_usable": 2.456776663388297,
+          "level_probability_ece_10_bins_on_usable": 0.16706578125000002,
+          "mean_level_distribution_entropy_on_usable": 0.580024732572602
+        }
+      },
+      "relative_to_baseline": {
+        "baseline_run_id": "trec-score-v0--typesafe--jev-latest--20260926T115138Z--eaf6868f",
+        "provider_metrics": {
+          "completion_rate_delta": 0.0,
+          "provider_success_rate_delta": 0.0,
+          "valid_output_rate_delta": 0.005624999999999991,
+          "partial_output_rate_delta": 0.001875
+        },
+        "model_performance": {
+          "p50_latency_ratio": 7.483623671020098,
+          "p95_latency_ratio": 8.665900442034742,
+          "input_tokens_per_attempted_ratio": 0.6605147493532862,
+          "output_tokens_per_attempted_ratio": 6.9419914061342425,
+          "reported_total_tokens_per_attempted_ratio": 0.8794276434183381,
+          "cost_per_attempted_ratio": null
+        },
+        "model_quality": {
+          "score_nearest_tier_accuracy_on_usable_delta": -0.015426637279596978,
+          "score_ordinal_mae_on_usable_delta": 0.02013415703715371,
+          "score_distribution_consistency_rate_delta": -0.00187499999999996,
+          "malformed_response_rate_delta": -0.0075,
+          "level_probability_brier_on_usable_delta": 0.04112210572908537,
+          "level_probability_log_loss_on_usable_delta": -2.1516086089301636,
+          "level_probability_ece_10_bins_on_usable_delta": 0.01453744371851387,
+          "mean_level_distribution_entropy_on_usable_delta": 0.06121182187054619
+        }
+      }
+    }
+  ]
+}

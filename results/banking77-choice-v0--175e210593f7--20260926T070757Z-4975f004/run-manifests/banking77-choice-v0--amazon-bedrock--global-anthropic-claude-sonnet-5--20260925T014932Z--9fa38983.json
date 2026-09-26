@@ -1,0 +1,40 @@
+{
+  "run_id": "banking77-choice-v0--amazon-bedrock--global-anthropic-claude-sonnet-5--20260925T014932Z--9fa38983",
+  "status": "completed",
+  "started_at": "2026-09-25T01:49:32.430693Z",
+  "finished_at": "2026-09-25T05:01:29.976923Z",
+  "experiment_id": "banking77-choice",
+  "experiment_version": "v0",
+  "experiment_package_hash": "175e210593f7a6fd8dfebd0fa2b1be04287d6e1bce4f8b246e6c6584a9885472",
+  "adapter_version": "bedrock-converse-choice-v1",
+  "model_config": {
+    "adapter": "bedrock_converse",
+    "provider": "amazon-bedrock",
+    "model_id": "global.anthropic.claude-sonnet-5",
+    "model_revision": null,
+    "endpoint": "https://bedrock-runtime.ap-northeast-1.amazonaws.com",
+    "api_key_env": "BEDROCK_API_KEY",
+    "response_format": "json_object",
+    "max_tokens": 1024,
+    "timeout_seconds": 60,
+    "max_retries": 2,
+    "model_config": {
+      "output_config": {
+        "effort": "low"
+      }
+    },
+    "cost_basis": "unknown"
+  },
+  "model_config_sha256": "44c1e6ded72ac968b6e4565ab181af9be8e331e03caa547b00f6d7dbf704c0a0",
+  "execution": {
+    "mode": "serial",
+    "logical_decisions_per_request": 1
+  },
+  "counts": {
+    "total": 3080,
+    "attempted": 3080,
+    "valid": 3080,
+    "invalid": 0,
+    "provider_error": 0
+  }
+}

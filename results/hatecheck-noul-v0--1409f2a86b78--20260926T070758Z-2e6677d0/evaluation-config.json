@@ -1,0 +1,19 @@
+{
+  "evaluation_id": "hatecheck-noul-default",
+  "evaluation_version": "v0",
+  "task_type": "noul",
+  "invalid_prediction_policy": "exclude_from_correctness",
+  "positive_threshold": 0.5,
+  "calibration_bins": 10,
+  "metrics": [
+    "accuracy_on_valid",
+    "macro_f1_on_valid",
+    "precision_on_valid",
+    "recall_on_valid",
+    "auroc_on_valid",
+    "true_probability_brier_on_valid",
+    "true_probability_ece_10_bins",
+    "confusion_matrix",
+    "functionality_slices"
+  ]
+}

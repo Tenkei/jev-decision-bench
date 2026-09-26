@@ -1,0 +1,33 @@
+{
+  "run_id": "banking77-choice-v0--typesafe--jev-latest--20260924T123800Z--c0350746",
+  "status": "completed",
+  "started_at": "2026-09-24T12:38:00.350375Z",
+  "finished_at": "2026-09-24T13:04:41.533732Z",
+  "experiment_id": "banking77-choice",
+  "experiment_version": "v0",
+  "experiment_package_hash": "175e210593f7a6fd8dfebd0fa2b1be04287d6e1bce4f8b246e6c6584a9885472",
+  "adapter_version": "typesafe-direct-choice-v1",
+  "model_config": {
+    "adapter": "typesafe_direct",
+    "provider": "typesafe",
+    "model_id": "jev-latest",
+    "model_revision": null,
+    "endpoint": "https://api.typesafe.ai/v1/systemone",
+    "api_key_env": "TYPESAFE_API_KEY",
+    "timeout_seconds": 60,
+    "max_retries": 2,
+    "cost_basis": "provider_reported"
+  },
+  "model_config_sha256": "ca4b91a040e5b85761819ddd013c4537fac34a8bd3d20d1f3f56e3a3f16c4574",
+  "execution": {
+    "mode": "serial",
+    "logical_decisions_per_request": 1
+  },
+  "counts": {
+    "total": 3080,
+    "attempted": 3080,
+    "valid": 3080,
+    "invalid": 0,
+    "provider_error": 0
+  }
+}
