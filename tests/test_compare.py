@@ -41,7 +41,10 @@ class CompareTests(unittest.TestCase):
             root = Path(directory)
             package = root / "package"
             package.mkdir()
-            write_json(package / "experiment-manifest.json", {"experiment_package_hash": "package-hash"})
+            write_json(
+                package / "experiment-manifest.json",
+                {"experiment_id": "fixture", "experiment_version": "v0", "experiment_package_hash": "package-hash"},
+            )
             baseline, candidate = root / "baseline", root / "candidate"
             _write_run(baseline, "jev", [_prediction("valid", 10), _prediction("valid", 20)])
             _write_run(candidate, "llm", [_prediction("valid", 20), _prediction("provider_error", 30, input_tokens=None, output_tokens=None)])
@@ -62,6 +65,7 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(row["model_performance"]["token_usage"]["reported_total_tokens"], 110.0)
         self.assertIsNone(row["model_quality"])
         self.assertEqual(row["relative_to_baseline"]["model_performance"]["p50_latency_ratio"], 2.0)
+        self.assertTrue(output_dir.name.startswith("fixture-v0--package-hash--"))
 
     def test_includes_quality_when_all_runs_have_a_requested_score(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

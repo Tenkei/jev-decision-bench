@@ -301,7 +301,7 @@ path explicitly with `--evaluation`; comparison then stops if any selected run
 does not have a matching score artifact.
 
 The command writes `comparison.json` under
-`artifacts/comparisons/<comparison-id>/`. Quality and provider-health deltas
+`artifacts/comparisons/<experiment-id>-<version>--<package-hash>--<comparison-id>/`. Quality and provider-health deltas
 are candidate minus baseline. Latency, known cost, and reported token-use
 metrics are ratios to the baseline, so values below `1` are lower. Token
 ratios are operational evidence, not a cross-provider cost equivalence: model
@@ -324,7 +324,7 @@ artifacts/
   evaluations/<run-id>/<evaluation-id>--<evaluation-config-hash>/
     evaluation-config.json
     scores.json
-  comparisons/<comparison-id>/
+  comparisons/<experiment-id>-<version>--<package-hash>--<comparison-id>/
     comparison.json
 ```
 

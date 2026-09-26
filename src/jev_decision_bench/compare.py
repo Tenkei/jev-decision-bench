@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 import uuid
 from collections import Counter
 from datetime import UTC, datetime
@@ -15,6 +16,11 @@ _QUALITY_FIELDS = (
     "accuracy_on_valid", "exact_tier_accuracy_on_valid", "ordinal_mae_on_valid", "macro_f1_on_valid", "precision_on_valid", "recall_on_valid", "auroc_on_valid",
     "true_probability_brier_on_valid", "true_probability_ece_10_bins", "top_label_brier_on_valid", "top_label_ece_10_bins",
 )
+
+
+def _path_token(value: str) -> str:
+    token = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-").lower()
+    return token or "experiment"
 
 
 def _is_number(value: object) -> bool:
@@ -193,6 +199,14 @@ def _default_evaluation(manifest: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
 
+def _comparison_id(experiment: dict[str, Any]) -> str:
+    experiment_id = _path_token(str(experiment.get("experiment_id", "experiment")))
+    experiment_version = _path_token(str(experiment.get("experiment_version", "version")))
+    package_hash = str(experiment["experiment_package_hash"])[:12]
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    return f"{experiment_id}-{experiment_version}--{package_hash}--{timestamp}-{uuid.uuid4().hex[:8]}"
+
+
 def compare(package_dir: Path, baseline_run_dir: Path, run_dirs: list[Path], artifacts_root: Path, evaluation_config_path: Path | None = None) -> Path:
     if not run_dirs:
         raise ValueError("Comparison requires at least one non-baseline run")
@@ -220,7 +234,7 @@ def compare(package_dir: Path, baseline_run_dir: Path, run_dirs: list[Path], art
         row["relative_to_baseline"] = _relative_to_baseline(row, baseline)
         rows.append(row)
     evaluation_hash = sha256_bytes(canonical_json(evaluation).encode("utf-8")) if evaluation else None
-    comparison_id = f"{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
+    comparison_id = _comparison_id(experiment)
     output_dir = artifacts_root / "comparisons" / comparison_id
     output_dir.mkdir(parents=True, exist_ok=False)
     write_json(output_dir / "comparison.json", order_fields({"comparison_id": comparison_id, "experiment_package_hash": package_hash, "evaluation_config_sha256": evaluation_hash, "baseline": baseline, "runs": rows}, ("comparison_id", "experiment_package_hash", "evaluation_config_sha256", "baseline", "runs")))
