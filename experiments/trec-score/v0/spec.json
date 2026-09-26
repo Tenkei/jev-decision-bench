@@ -1,0 +1,39 @@
+{
+  "experiment_id": "trec-score",
+  "experiment_version": "v0",
+  "dataset": {
+    "name": "TREC 2019 Deep Learning Passage Ranking",
+    "license": "NOASSERTION",
+    "source_repository": "https://trec.nist.gov/data/deep2019.html",
+    "revision": "trec-dl-2019-passage",
+    "files": {
+      "queries.tsv.gz": {
+        "url": "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-test2019-queries.tsv.gz",
+        "sha256": "d66f01dfa8a3e60fe375ba645efc004f97ff4dd2a424536b8d5810c16182a3b5"
+      },
+      "top1000.tsv.gz": {
+        "url": "https://msmarco.z22.web.core.windows.net/msmarcoranking/msmarco-passagetest2019-top1000.tsv.gz",
+        "sha256": "360406fb796f5d22735c940d1bfa21558aca7282e1464feb402f3f58ecda5d9e"
+      },
+      "qrels.txt": {
+        "url": "https://trec.nist.gov/data/deep/2019qrels-pass.txt",
+        "sha256": "8a1f10d550732e4cd91d7fc49846a3784de4040972f583e69285a88f3c5fee92"
+      }
+    },
+    "split": "NIST-judged TREC 2019 test candidates; deterministic balanced sample",
+    "expected_row_count": 1600,
+    "sample_per_grade": 400
+  },
+  "task": {
+    "record_set": "score",
+    "task_type": "score",
+    "question": "How well does this passage answer the search query?",
+    "rubric_path": "rubric.json",
+    "preflight": {
+      "state": {
+        "query": "what is the capital of france",
+        "passage": "Paris is the capital and most populous city of France."
+      }
+    }
+  }
+}

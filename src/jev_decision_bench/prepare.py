@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import gzip
 import io
 import json
 import subprocess
@@ -16,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 _EXPERIMENT_DIRECTORIES = {
     "banking77-choice-v0": ROOT / "experiments" / "banking77-choice" / "v0",
     "hatecheck-noul-v0": ROOT / "experiments" / "hatecheck-noul" / "v0",
+    "trec-score-v0": ROOT / "experiments" / "trec-score" / "v0",
 }
 
 
@@ -125,9 +127,80 @@ def _compile_hatecheck(spec: dict, rubric: dict, source_bytes: dict[str, bytes])
     ]
 
 
+def _compile_trec_passage_relevance(spec: dict, rubric: dict, source_bytes: dict[str, bytes]) -> list[dict]:
+    """Compile a balanced, deterministic sample of NIST-judged TREC passages."""
+    try:
+        query_rows = gzip.decompress(source_bytes["queries.tsv.gz"]).decode("utf-8").split("\n")
+        candidate_rows = gzip.decompress(source_bytes["top1000.tsv.gz"]).decode("utf-8").split("\n")
+    except (KeyError, OSError, UnicodeDecodeError) as error:
+        raise ValueError("TREC query or candidate source is not a valid UTF-8 gzip file") from error
+    queries: dict[str, str] = {}
+    for row in query_rows:
+        row = row.rstrip("\r")
+        if not row:
+            continue
+        fields = row.split("\t", 1)
+        if len(fields) != 2 or not all(fields):
+            raise ValueError("TREC query source has an invalid row")
+        queries[fields[0]] = fields[1]
+    candidates: dict[tuple[str, str], tuple[str, str]] = {}
+    for row in candidate_rows:
+        row = row.rstrip("\r")
+        if not row:
+            continue
+        fields = row.split("\t", 3)
+        if len(fields) != 4 or not all(fields):
+            raise ValueError("TREC candidate source has an invalid row")
+        qid, pid, query, passage = fields
+        if queries.get(qid, "").casefold() != query.casefold() or (qid, pid) in candidates:
+            raise ValueError("TREC candidate source does not match the frozen query source")
+        candidates[(qid, pid)] = (queries[qid], passage)
+    by_grade: dict[int, list[tuple[str, str, str, str]]] = {level: [] for level in range(len(rubric["criteria"]))}
+    for row in source_bytes["qrels.txt"].decode("utf-8").splitlines():
+        fields = row.split()
+        if len(fields) != 4 or fields[1] != "Q0":
+            raise ValueError("TREC qrels source has an invalid row")
+        qid, _, pid, grade_text = fields
+        try:
+            grade = int(grade_text)
+        except ValueError as error:
+            raise ValueError("TREC qrels grade is not an integer") from error
+        if grade not in by_grade:
+            raise ValueError("TREC qrels grade is outside the frozen rubric")
+        if (qid, pid) not in candidates:
+            continue
+        query, passage = candidates[(qid, pid)]
+        by_grade[grade].append((qid, pid, query, passage))
+    sample_per_grade = spec["dataset"]["sample_per_grade"]
+    selected: list[tuple[int, str, str, str, str]] = []
+    for grade, rows in by_grade.items():
+        if len(rows) < sample_per_grade:
+            raise ValueError(f"TREC has fewer than {sample_per_grade} judgments for grade {grade}")
+        selected.extend(
+            (grade, *row)
+            for row in sorted(rows, key=lambda row: sha256_bytes(f"{row[0]}:{row[1]}".encode("utf-8")))[:sample_per_grade]
+        )
+    if len(selected) != spec["dataset"]["expected_row_count"]:
+        raise ValueError("TREC balanced sample has an unexpected row count")
+    return [
+        {
+            "decision_id": f"trec-score-v0:{qid}:{pid}",
+            "state": {"query": query, "passage": passage},
+            "gold": grade,
+            "source_id": f"trec-dl-2019:{qid}:{pid}",
+            "task_type": "score",
+            "question": spec["task"]["question"],
+            "criteria": rubric["criteria"],
+            "metadata": {"query_id": qid, "passage_id": pid, "record_set": "score"},
+        }
+        for grade, qid, pid, query, passage in sorted(selected, key=lambda row: (row[1], row[2]))
+    ]
+
+
 _EXPERIMENT_COMPILERS = {
     "banking77-choice": _compile_banking77,
     "hatecheck-noul": _compile_hatecheck,
+    "trec-score": _compile_trec_passage_relevance,
 }
 
 

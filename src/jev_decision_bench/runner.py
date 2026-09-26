@@ -350,6 +350,8 @@ def run(
                     result.answer,
                     result.selected_probability,
                     result.positive_probability,
+                    result.score,
+                    result.level_probabilities,
                 ),
             )
             status = "invalid" if validation_error else "valid"
@@ -359,6 +361,8 @@ def run(
                 "answer": result.answer if not validation_error else None,
                 "selected_probability": result.selected_probability if not validation_error else None,
                 "positive_probability": result.positive_probability if not validation_error else None,
+                "score": result.score if not validation_error else None,
+                "level_probabilities": result.level_probabilities if not validation_error else None,
                 "probability_provenance": "native" if config["adapter"] == "typesafe_system_one" else "verbalized",
                 "model": {
                     "provider": config["provider"],
@@ -381,6 +385,8 @@ def run(
                 "answer": None,
                 "selected_probability": None,
                 "positive_probability": None,
+                "score": None,
+                "level_probabilities": None,
                 "probability_provenance": None,
                 "model": {"provider": config["provider"], "id": config["model_id"], "revision": config.get("model_revision")},
                 "timing_ms": latency_ms,

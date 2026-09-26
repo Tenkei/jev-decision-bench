@@ -1,0 +1,13 @@
+{
+  "evaluation_id": "trec-score-default",
+  "evaluation_version": "v0",
+  "task_type": "score",
+  "invalid_prediction_policy": "exclude_from_correctness",
+  "metrics": [
+    "exact_tier_accuracy_on_valid",
+    "ordinal_mae_on_valid",
+    "top_label_brier_on_valid",
+    "top_label_ece_10_bins"
+  ],
+  "calibration_bins": 10
+}

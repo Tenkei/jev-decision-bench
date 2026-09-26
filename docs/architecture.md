@@ -100,7 +100,7 @@ verifies their hashes, and writes a package such as:
 ```text
 artifacts/experiments/<experiment-id>/<version>/<package-hash>/
   experiment-manifest.json
-  records.choice.jsonl or records.noul.jsonl
+  records.choice.jsonl, records.noul.jsonl, or records.score.jsonl
   rubric.json
   preflight.json
   source/
@@ -126,7 +126,7 @@ metric implementation.
 | --- | --- | --- |
 | Choice | `choice` and `confidence` | Choice must be a frozen rubric key; confidence must be in `[0, 1]`. |
 | Noul | `answer` and `probability_true` | Answer must agree with the recorded true probability at the execution threshold. |
-| Score | Planned | Will define ordered levels and ordinal validation without altering Choice or Noul paths. |
+| Score | `score` and `probabilities` by level | The score is a continuous frozen-rubric position; every ordered level receives a probability in `[0, 1]`, and the two agree within rounding tolerance. |
 
 For native JEV, a contract renders the appropriate question type. For an LLM,
 it supplies the bounded JSON schema and instructions. Adapters then send those
@@ -169,9 +169,9 @@ auditable.
 To add an experiment, create its versioned source directory with a pinned
 dataset spec, rubric, preflight fixture, default evaluation policy, and a
 compiler registration. To add a new provider, implement an adapter that
-transports the generic rendered decision request. To add `Score`, implement
-its contract and evaluator, then add a Score experiment; existing adapters,
-runs, and evaluations stay unchanged.
+transports the generic rendered decision request. New task types require their
+own contract, evaluator, and experiment; existing adapters, runs, and
+evaluations stay unchanged.
 
 ## Next
 

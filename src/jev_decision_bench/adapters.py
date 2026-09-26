@@ -31,13 +31,15 @@ class AdapterError(RuntimeError):
 
 @dataclass(frozen=True)
 class AdapterResult:
-    answer: str | bool
+    answer: str | bool | int
     selected_probability: float
     model_revision: str | None
     provider_usage: dict[str, Any] | None
     cost_usd: float | None
     raw_response: dict[str, Any]
     positive_probability: float | None = None
+    score: float | None = None
+    level_probabilities: dict[str, float] | None = None
 
 
 def _post_json(
@@ -119,6 +121,8 @@ class TypeSafeSystemOneAdapter(DecisionAdapter):
             answer=decision.answer,
             selected_probability=decision.selected_probability,
             positive_probability=decision.positive_probability,
+            score=decision.score,
+            level_probabilities=decision.level_probabilities,
             model_revision=response.get("model") or self.config.get("model_revision"),
             provider_usage=usage,
             cost_usd=float(cost) if isinstance(cost, (int, float)) else None,
@@ -126,12 +130,12 @@ class TypeSafeSystemOneAdapter(DecisionAdapter):
         )
 
 
-def _normalized_llm_result(record: dict[str, Any], parsed: dict[str, Any]) -> tuple[str | bool, float, float | None]:
+def _normalized_llm_result(record: dict[str, Any], parsed: dict[str, Any]):
     try:
-        decision = contract_for_record(record).parse_llm_output(parsed)
+        decision = contract_for_record(record).parse_llm_output(parsed, record)
     except TaskOutputError as error:
         raise AdapterError(str(error), invalid_output=True) from error
-    return decision.answer, decision.selected_probability, decision.positive_probability
+    return decision
 
 
 def _model_arguments(config: dict[str, Any], reserved: set[str]) -> dict[str, Any]:
@@ -192,14 +196,16 @@ class OpenAICompatibleChatCompletionsAdapter(DecisionAdapter):
                 body=canonical_json(response),
             )
         try:
-            answer, selected_probability, positive_probability = _normalized_llm_result(record, parsed)
+            decision = _normalized_llm_result(record, parsed)
         except AdapterError as error:
             raise AdapterError(str(error), invalid_output=True, body=canonical_json(response)) from error
         usage = response.get("usage") if isinstance(response.get("usage"), dict) else None
         return AdapterResult(
-            answer=answer,
-            selected_probability=selected_probability,
-            positive_probability=positive_probability,
+            answer=decision.answer,
+            selected_probability=decision.selected_probability,
+            positive_probability=decision.positive_probability,
+            score=decision.score,
+            level_probabilities=decision.level_probabilities,
             model_revision=response.get("model") or self.config.get("model_revision"),
             provider_usage=usage,
             cost_usd=_configured_cost(usage, self.config),
@@ -251,14 +257,16 @@ class OpenAICompatibleResponsesAdapter(DecisionAdapter):
                 body=canonical_json(response),
             )
         try:
-            answer, selected_probability, positive_probability = _normalized_llm_result(record, parsed)
+            decision = _normalized_llm_result(record, parsed)
         except AdapterError as error:
             raise AdapterError(str(error), invalid_output=True, body=canonical_json(response)) from error
         usage = response.get("usage") if isinstance(response.get("usage"), dict) else None
         return AdapterResult(
-            answer=answer,
-            selected_probability=selected_probability,
-            positive_probability=positive_probability,
+            answer=decision.answer,
+            selected_probability=decision.selected_probability,
+            positive_probability=decision.positive_probability,
+            score=decision.score,
+            level_probabilities=decision.level_probabilities,
             model_revision=response.get("model") or self.config.get("model_revision"),
             provider_usage=usage,
             cost_usd=_configured_cost(usage, self.config),
@@ -289,9 +297,17 @@ class BedrockConverseAdapter(DecisionAdapter):
             # Bedrock Converse rejects numeric minimum and maximum constraints.
             # The benchmark still validates confidence is in [0, 1] after the
             # response, so this only relaxes a provider-side rendering detail.
-            for property_schema in schema["schema"]["properties"].values():
-                property_schema.pop("minimum", None)
-                property_schema.pop("maximum", None)
+            def strip_numeric_bounds(value: Any) -> None:
+                if isinstance(value, dict):
+                    value.pop("minimum", None)
+                    value.pop("maximum", None)
+                    for nested in value.values():
+                        strip_numeric_bounds(nested)
+                elif isinstance(value, list):
+                    for nested in value:
+                        strip_numeric_bounds(nested)
+
+            strip_numeric_bounds(schema["schema"])
             payload["outputConfig"] = {
                 "textFormat": {
                     "type": "json_schema",
@@ -345,7 +361,7 @@ class BedrockConverseAdapter(DecisionAdapter):
                 body=canonical_json(response),
             )
         try:
-            answer, selected_probability, positive_probability = _normalized_llm_result(record, parsed)
+            decision = _normalized_llm_result(record, parsed)
         except AdapterError as error:
             raise AdapterError(str(error), invalid_output=True, body=canonical_json(response)) from error
         raw_usage = response.get("usage") if isinstance(response.get("usage"), dict) else None
@@ -359,9 +375,11 @@ class BedrockConverseAdapter(DecisionAdapter):
             else None
         )
         return AdapterResult(
-            answer=answer,
-            selected_probability=selected_probability,
-            positive_probability=positive_probability,
+            answer=decision.answer,
+            selected_probability=decision.selected_probability,
+            positive_probability=decision.positive_probability,
+            score=decision.score,
+            level_probabilities=decision.level_probabilities,
             model_revision=self.config.get("model_revision"),
             provider_usage=usage,
             cost_usd=_configured_cost(usage, self.config),

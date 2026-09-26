@@ -1,0 +1,9 @@
+{
+  "rubric_version": "trec-dl-2019-passage-relevance-v1",
+  "criteria": [
+    "Not Relevant: the passage does not address the query or its information need.",
+    "Related: the passage is on the same general topic but does not answer the query.",
+    "Highly Relevant: the passage substantially answers the query, but is not a complete ideal answer.",
+    "Perfect: the passage is a complete, direct answer to the query."
+  ]
+}

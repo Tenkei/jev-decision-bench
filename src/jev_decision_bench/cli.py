@@ -29,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="jev-decision-bench")
     subparsers = parser.add_subparsers(dest="command", required=True)
     prepare_parser = subparsers.add_parser("prepare", help="Create a pinned experiment package")
-    prepare_parser.add_argument("--experiment", required=True, choices=["banking77-choice-v0", "hatecheck-noul-v0"])
+    prepare_parser.add_argument("--experiment", required=True, choices=["banking77-choice-v0", "hatecheck-noul-v0", "trec-score-v0"])
     prepare_parser.add_argument("--artifacts-root", default="artifacts", type=_artifacts_path)
     run_parser = subparsers.add_parser("run", help="Execute one model against a prepared package")
     run_parser.add_argument("--package", required=True, type=Path)

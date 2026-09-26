@@ -11,9 +11,11 @@ from .util import canonical_json
 class NormalizedDecision:
     """Provider-independent decision result before runner validation."""
 
-    answer: str | bool
+    answer: str | bool | int
     selected_probability: float
     positive_probability: float | None = None
+    score: float | None = None
+    level_probabilities: dict[str, float] | None = None
 
 
 class TaskOutputError(ValueError):
@@ -42,7 +44,7 @@ class TaskContract:
             {"state": record["state"], "question": record["question"], "criteria": record["criteria"]}
         )
 
-    def parse_llm_output(self, parsed: dict[str, Any]) -> NormalizedDecision:
+    def parse_llm_output(self, parsed: dict[str, Any], record: dict[str, Any]) -> NormalizedDecision:
         raise NotImplementedError
 
     def native_question(self, record: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -56,7 +58,7 @@ class TaskContract:
             return f"selected probability must be in [0, 1], got {result.selected_probability}"
         return None
 
-    def preflight_record(self, task_spec: dict[str, Any], criteria: dict[str, str]) -> dict[str, Any]:
+    def preflight_record(self, task_spec: dict[str, Any], criteria: dict[str, Any] | list[str]) -> dict[str, Any]:
         fixture = task_spec.get("preflight")
         if not isinstance(fixture, dict) or not isinstance(fixture.get("state"), dict):
             raise ValueError(f"{self.task_type} experiment task must define preflight.state")
@@ -97,7 +99,7 @@ class ChoiceContract(TaskContract):
             "field, an unknown label, or any other field."
         )
 
-    def parse_llm_output(self, parsed: dict[str, Any]) -> NormalizedDecision:
+    def parse_llm_output(self, parsed: dict[str, Any], record: dict[str, Any]) -> NormalizedDecision:
         choice, confidence = parsed.get("choice"), parsed.get("confidence")
         if not isinstance(choice, str) or not isinstance(confidence, (int, float)):
             raise TaskOutputError("LLM response lacks choice or confidence")
@@ -160,7 +162,7 @@ class NoulContract(TaskContract):
             "otherwise false. Do not return reasoning, tags, prose, Markdown, or any other field."
         )
 
-    def parse_llm_output(self, parsed: dict[str, Any]) -> NormalizedDecision:
+    def parse_llm_output(self, parsed: dict[str, Any], record: dict[str, Any]) -> NormalizedDecision:
         answer, probability_true = parsed.get("answer"), parsed.get("probability_true")
         if not isinstance(answer, bool) or not isinstance(probability_true, (int, float)):
             raise TaskOutputError("LLM response lacks a boolean answer or true probability")
@@ -200,9 +202,96 @@ class NoulContract(TaskContract):
         return None
 
 
+class ScoreContract(TaskContract):
+    task_type = "score"
+    record_set = "score"
+    validation_contract_version = "score-level-distribution-v1"
+
+    def llm_schema(self, record: dict[str, Any]) -> dict[str, Any]:
+        level_keys = [str(index) for index in range(len(record["criteria"]))]
+        return {
+            "name": "ordered_score",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "score": {"type": "number", "minimum": 0, "maximum": len(record["criteria"]) - 1},
+                    "probabilities": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {key: {"type": "number", "minimum": 0, "maximum": 1} for key in level_keys},
+                        "required": level_keys,
+                    }
+                },
+                "required": ["score", "probabilities"],
+            },
+        }
+
+    def llm_instructions(self) -> str:
+        return (
+            "Rate the state against the supplied ordered, descriptive levels. Return exactly one JSON object and nothing else. "
+            "It must contain `score` and `probabilities`. `score` is the continuous rubric position from 0 for the first "
+            "level through the last level index. `probabilities` is a JSON object mapping every string level index (`0`, `1`, and so on) "
+            "to a probability from 0 to 1. Do not use an array. "
+            "The probabilities must sum to 1, and the score must agree with their probability-weighted mean. "
+            "Do not return prose, reasoning, an answer label, or other fields."
+        )
+
+    @staticmethod
+    def _decision(probabilities: Any, score: Any, criteria: list[Any]) -> NormalizedDecision:
+        if not isinstance(probabilities, dict):
+            raise TaskOutputError("Score response lacks level probabilities")
+        expected = {str(index) for index in range(len(criteria))}
+        if set(probabilities) != expected or any(
+            not isinstance(value, (int, float)) or isinstance(value, bool) for value in probabilities.values()
+        ):
+            raise TaskOutputError("Score probabilities must contain exactly one numeric value for every rubric level")
+        normalized = {key: float(value) for key, value in probabilities.items()}
+        if any(value < 0 or value > 1 for value in normalized.values()) or abs(sum(normalized.values()) - 1) > 1e-6:
+            raise TaskOutputError("Score probabilities must be in [0, 1] and sum to 1")
+        if not isinstance(score, (int, float)) or isinstance(score, bool):
+            raise TaskOutputError("Score response lacks a numeric score")
+        score = float(score)
+        if not 0 <= score <= len(criteria) - 1:
+            raise TaskOutputError("Score is outside the frozen rubric range")
+        answer = max(range(len(criteria)), key=lambda index: (normalized[str(index)], -index))
+        expected_score = sum(index * normalized[str(index)] for index in range(len(criteria)))
+        rounding_tolerance = 0.005 + 0.005 * sum(range(len(criteria)))
+        if abs(score - expected_score) > rounding_tolerance:
+            raise TaskOutputError("Score does not match its level probabilities")
+        return NormalizedDecision(answer, normalized[str(answer)], score=score, level_probabilities=normalized)
+
+    def parse_llm_output(self, parsed: dict[str, Any], record: dict[str, Any]) -> NormalizedDecision:
+        return self._decision(parsed.get("probabilities"), parsed.get("score"), record["criteria"])
+
+    def native_question(self, record: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+        return "score", {"type": "score", "instructions": record["question"], "criteria": record["criteria"]}
+
+    def parse_native_output(self, response: dict[str, Any], record: dict[str, Any]) -> NormalizedDecision:
+        answers = response.get("answers") or response.get("choices")
+        answer = answers.get("score") if isinstance(answers, dict) else None
+        if not isinstance(answer, dict):
+            raise TaskOutputError("TypeSafe response lacks the requested score answer")
+        return self._decision(answer.get("probabilities"), answer.get("score"), record["criteria"])
+
+    def validate_prediction(self, record: dict[str, Any], result: NormalizedDecision) -> str | None:
+        error = super().validate_prediction(record, result)
+        if error:
+            return error
+        if not isinstance(result.answer, int) or isinstance(result.answer, bool) or not isinstance(result.score, (int, float)) or result.level_probabilities is None:
+            return "Score output requires a level, score, and probabilities"
+        if not 0 <= result.answer < len(record["criteria"]):
+            return "Score answer is outside the frozen rubric"
+        if not 0 <= result.score <= len(record["criteria"]) - 1:
+            return "Score is outside the frozen rubric range"
+        return None
+
+
 _CONTRACTS: dict[str, TaskContract] = {
     "choice": ChoiceContract(),
     "noul": NoulContract(),
+    "score": ScoreContract(),
 }
 
 

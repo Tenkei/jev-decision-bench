@@ -45,7 +45,7 @@ model run, or once for a comparison.
 | Select source data and split | Experiment version | Per experiment | Dataset source revision, hashes, row IDs |
 | Normalize source rows | Experiment version | Per experiment | Canonical source records |
 | Write label definitions and answer rubric | Experiment version | Per experiment | Fixed rubric version and hash |
-| Compile benchmark items | Experiment version | Per experiment | Model-independent Choice items in v0 |
+| Compile benchmark items | Experiment version | Per experiment | Model-independent task records for the experiment's contract |
 | Generate Noul negatives | Deferred Noul experiment | Per experiment | Frozen candidate pairs, sampler version, seed, and hash |
 | Recommend an evaluation policy | Experiment source | Per experiment | Editable default evaluation configuration; not part of the package hash |
 | Render a benchmark item to a provider request | Model run, referencing an experiment version | Per model | Native JEV request or LLM JSON-schema request |
@@ -268,8 +268,11 @@ invalid response is recorded as a failure rather than being repaired.
 ```
 
 `probability_provenance` is `native` for JEV's decision API and `verbalized`
-for an LLM that writes top-label confidence in JSON. A missing or invalid
-probability is retained as such; it is never made up by the evaluator.
+for an LLM that writes its probabilities in JSON. A Score result also stores
+the model-reported continuous rubric position and its probability for every
+ordered rubric level. The two must agree within rounding tolerance. A missing
+or invalid probability is retained as such; it is never made up by the
+evaluator.
 
 ## Next
 

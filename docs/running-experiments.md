@@ -6,9 +6,7 @@ experiment marked ready; deferred entries describe planned work, not runnable
 commands.
 
 This guide runs a prepared experiment against native JEV and a conventional
-LLM. `banking77-choice-v0` sends 3,080 intent-routing decisions;
-`hatecheck-noul-v0` sends 3,728 binary policy decisions. Each model run also
-makes one unscored preflight request.
+LLM. Each model run also makes one unscored preflight request.
 
 ## 1. Hardware and network
 
@@ -350,10 +348,10 @@ top-level fields in the configuration. Adapters map the shared
 through without allowing it to replace the model, prompt, token limit, or
 output contract. Omit an argument that the selected model does not support.
 
-The first implementation does not run derived BANKING77 Noul membership
-experiments, Score tasks, parallel execution, or native batching. Those
-capabilities require a new experiment version and separate documentation before
-being used in a headline comparison.
+A single `run` invocation processes records serially and does not use native
+batching. The concurrent launch above runs separate model configurations in
+parallel; it does not change the decision records or batch requests within one
+model run.
 
 ## Next
 

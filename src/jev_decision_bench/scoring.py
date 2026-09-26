@@ -130,7 +130,26 @@ def _score_noul(manifest: dict[str, Any], run_manifest: dict[str, Any], records:
     return metrics
 
 
-_TASK_SCORERS: dict[str, Callable[..., dict[str, Any]]] = {"choice": _score_choice, "noul": _score_noul}
+def _score_score(manifest: dict[str, Any], run_manifest: dict[str, Any], records: dict[str, dict[str, Any]], predictions: list[dict[str, Any]], evaluation: dict[str, Any]) -> dict[str, Any]:
+    valid = [prediction for prediction in predictions if prediction["status"] == "valid"]
+    gold = [int(records[prediction["decision_id"]]["gold"]) for prediction in valid]
+    answers = [int(prediction["answer"]) for prediction in valid]
+    scores = [float(prediction["score"]) for prediction in valid]
+    confidences = [float(prediction["selected_probability"]) for prediction in valid]
+    correct = [int(answer == label) for answer, label in zip(answers, gold)]
+    metrics = _common_metrics(run_manifest, manifest, predictions, valid)
+    bins = int(evaluation.get("calibration_bins", 10))
+    metrics.update({
+        "accuracy_on_valid": sum(correct) / len(correct) if correct else None,
+        "exact_tier_accuracy_on_valid": sum(correct) / len(correct) if correct else None,
+        "ordinal_mae_on_valid": sum(abs(score - label) for score, label in zip(scores, gold)) / len(valid) if valid else None,
+        "top_label_brier_on_valid": sum((confidence - outcome) ** 2 for confidence, outcome in zip(confidences, correct)) / len(valid) if valid else None,
+        "top_label_ece_10_bins": _ece(confidences, correct, bins),
+    })
+    return metrics
+
+
+_TASK_SCORERS: dict[str, Callable[..., dict[str, Any]]] = {"choice": _score_choice, "noul": _score_noul, "score": _score_score}
 
 
 def _default_evaluation_path(manifest: dict[str, Any]) -> Path:
@@ -166,7 +185,7 @@ def evaluation_output_dir(run_manifest: dict[str, Any], evaluation: dict[str, An
 
 def _ordered_scores(metrics: dict[str, Any]) -> dict[str, Any]:
     return order_fields(metrics, (
-        "evaluation_id", "evaluation_version", "evaluation_config_sha256", "task_type", "run_id", "experiment_package_hash", "total_records", "status_counts", "valid_predictions", "coverage", "valid_output_rate", "accuracy_on_valid", "macro_f1_on_valid", "precision_on_valid", "recall_on_valid", "auroc_on_valid", "true_probability_brier_on_valid", "true_probability_ece_10_bins", "top_label_brier_on_valid", "top_label_ece_10_bins", "latency_ms", "cost_usd", "confusion_matrix", "functionality_slices",
+        "evaluation_id", "evaluation_version", "evaluation_config_sha256", "task_type", "run_id", "experiment_package_hash", "total_records", "status_counts", "valid_predictions", "coverage", "valid_output_rate", "accuracy_on_valid", "exact_tier_accuracy_on_valid", "ordinal_mae_on_valid", "macro_f1_on_valid", "precision_on_valid", "recall_on_valid", "auroc_on_valid", "true_probability_brier_on_valid", "true_probability_ece_10_bins", "top_label_brier_on_valid", "top_label_ece_10_bins", "latency_ms", "cost_usd", "confusion_matrix", "functionality_slices",
     ))
 
 

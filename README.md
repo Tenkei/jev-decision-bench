@@ -46,7 +46,7 @@ benchmark design but no dataset has been adopted yet. See the
 | Policy & guardrail decisions | `Noul` | [HateCheck](https://github.com/paul-rottger/hatecheck-data) | Decide whether content or an action satisfies an explicit policy or guardrail. |
 | Tool / action approval | `Choice` / `Noul` | TBD | Choose or approve the appropriate next action from a bounded set; actions are never executed. |
 | Severity / priority assessment | `Score` | TBD | Evaluate ordered judgments such as urgency, risk, or business impact. |
-| Search relevance / ranking | `Noul` / `Score` | TBD | Determine query-document relevance and rank candidates. |
+| Search relevance / ranking | `Noul` / `Score` | [TREC Deep Learning](https://trec.nist.gov/data/deep2019.html) | Determine query-document relevance and rank candidates. |
 | Generic requirement verification | `Noul` / `Choice` | TBD | Determine whether an artifact or state satisfies a named, explicit requirement. |
 | OOD uncertainty & abstention | All three | TBD | Measure whether confidence falls and review is selected when evidence or policy is missing. |
 
