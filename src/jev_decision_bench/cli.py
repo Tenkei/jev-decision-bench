@@ -83,7 +83,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "score":
             output_dir, metrics = score(args.run, args.package, args.evaluation, args.artifacts_root)
             print(output_dir / "scores.json")
-            print(f"accuracy_on_valid={metrics['accuracy_on_valid']}")
+            if "score_nearest_tier_accuracy_on_usable" in metrics:
+                print(f"score_nearest_tier_accuracy_on_usable={metrics['score_nearest_tier_accuracy_on_usable']}")
+            else:
+                print(f"accuracy_on_valid={metrics['accuracy_on_valid']}")
         elif args.command == "compare":
             print(compare(args.package, args.baseline, args.runs, args.artifacts_root, args.evaluation))
     except Exception as error:

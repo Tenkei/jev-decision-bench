@@ -13,7 +13,9 @@ from .util import canonical_json, order_fields, read_json, read_jsonl, sha256_by
 
 
 _QUALITY_FIELDS = (
-    "accuracy_on_valid", "exact_tier_accuracy_on_valid", "ordinal_mae_on_valid", "macro_f1_on_valid", "precision_on_valid", "recall_on_valid", "auroc_on_valid",
+    "accuracy_on_valid", "score_nearest_tier_accuracy_on_usable", "score_ordinal_mae_on_usable", "macro_f1_on_valid", "precision_on_valid", "recall_on_valid", "auroc_on_valid",
+    "score_distribution_consistency_rate", "malformed_response_rate",
+    "level_probability_brier_on_usable", "level_probability_log_loss_on_usable", "level_probability_ece_10_bins_on_usable", "mean_level_distribution_entropy_on_usable",
     "true_probability_brier_on_valid", "true_probability_ece_10_bins", "top_label_brier_on_valid", "top_label_ece_10_bins",
 )
 

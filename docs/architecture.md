@@ -149,8 +149,9 @@ three still match.
 
 A `partial` prediction preserves a structurally complete Score answer whose
 reported score materially disagrees with its level-probability distribution.
-Its raw values and mismatch reason are retained for diagnosis, but it is kept
-out of strict quality and calibration metrics. Missing or malformed fields
+Its raw values and mismatch reason are retained for diagnosis. Score quality
+and distribution metrics include it; its disagreement is reported separately
+as the score-distribution consistency rate. Missing or malformed responses
 remain `invalid`.
 
 ## Evaluation

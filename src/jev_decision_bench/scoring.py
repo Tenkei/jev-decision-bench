@@ -48,6 +48,59 @@ def _auroc(probabilities: list[float], labels: list[int]) -> float | None:
     return (positive_rank_sum - positives * (positives + 1) / 2) / (positives * negatives)
 
 
+def _nearest_level(score: float, level_count: int) -> int:
+    """Map a continuous ordinal score to its nearest rubric level.
+
+    Ties go to the higher level, so the mapping is deterministic and does not
+    inherit Python's banker's-rounding behaviour.
+    """
+    return min(level_count - 1, max(0, math.floor(score + 0.5)))
+
+
+def _multiclass_brier(probabilities: list[dict[str, float]], gold: list[int], level_count: int) -> float | None:
+    if not probabilities:
+        return None
+    return sum(
+        sum((distribution[str(level)] - int(level == label)) ** 2 for level in range(level_count))
+        for distribution, label in zip(probabilities, gold)
+    ) / len(probabilities)
+
+
+def _multiclass_log_loss(probabilities: list[dict[str, float]], gold: list[int]) -> float | None:
+    if not probabilities:
+        return None
+    # The contract permits zero probability. Clamp only for the numerical
+    # logarithm so a confidently wrong distribution remains comparable.
+    return -sum(math.log(max(distribution[str(label)], 1e-15)) for distribution, label in zip(probabilities, gold)) / len(probabilities)
+
+
+def _level_probability_ece(probabilities: list[dict[str, float]], gold: list[int], level_count: int, bins: int) -> float | None:
+    forecasts = [distribution[str(level)] for distribution in probabilities for level in range(level_count)]
+    outcomes = [int(level == label) for label in gold for level in range(level_count)]
+    return _ece(forecasts, outcomes, bins)
+
+
+def _mean_distribution_entropy(probabilities: list[dict[str, float]]) -> float | None:
+    if not probabilities:
+        return None
+    return sum(
+        -sum(value * math.log(value) for value in distribution.values() if value > 0)
+        for distribution in probabilities
+    ) / len(probabilities)
+
+
+def _score_matches_distribution(prediction: dict[str, Any], level_count: int) -> bool:
+    probabilities, score = prediction.get("level_probabilities"), prediction.get("score")
+    if not isinstance(probabilities, dict) or not isinstance(score, (int, float)) or isinstance(score, bool):
+        return False
+    try:
+        expected_score = sum(level * float(probabilities[str(level)]) for level in range(level_count))
+    except (KeyError, TypeError, ValueError):
+        return False
+    rounding_tolerance = 0.005 + 0.005 * sum(range(level_count))
+    return abs(float(score) - expected_score) <= rounding_tolerance
+
+
 def _common_metrics(run_manifest: dict[str, Any], manifest: dict[str, Any], predictions: list[dict[str, Any]], valid: list[dict[str, Any]]) -> dict[str, Any]:
     known_costs = [float(prediction["cost_usd"]) for prediction in predictions if isinstance(prediction["cost_usd"], (int, float))]
     latencies = [float(prediction["timing_ms"]) for prediction in predictions]
@@ -134,19 +187,33 @@ def _score_noul(manifest: dict[str, Any], run_manifest: dict[str, Any], records:
 
 def _score_score(manifest: dict[str, Any], run_manifest: dict[str, Any], records: dict[str, dict[str, Any]], predictions: list[dict[str, Any]], evaluation: dict[str, Any]) -> dict[str, Any]:
     valid = [prediction for prediction in predictions if prediction["status"] == "valid"]
-    gold = [int(records[prediction["decision_id"]]["gold"]) for prediction in valid]
-    answers = [int(prediction["answer"]) for prediction in valid]
-    scores = [float(prediction["score"]) for prediction in valid]
-    confidences = [float(prediction["selected_probability"]) for prediction in valid]
-    correct = [int(answer == label) for answer, label in zip(answers, gold)]
+    level_count = len(next(iter(records.values()))["criteria"])
+    usable = [
+        prediction for prediction in predictions
+        if prediction["status"] in {"valid", "partial"}
+        and isinstance(prediction.get("score"), (int, float))
+        and not isinstance(prediction.get("score"), bool)
+        and isinstance(prediction.get("level_probabilities"), dict)
+    ]
+    gold = [int(records[prediction["decision_id"]]["gold"]) for prediction in usable]
+    scores = [float(prediction["score"]) for prediction in usable]
+    score_levels = [_nearest_level(score, level_count) for score in scores]
+    correct = [int(level == label) for level, label in zip(score_levels, gold)]
+    probabilities = [prediction["level_probabilities"] for prediction in usable]
+    consistent_distributions = [
+        prediction for prediction in usable if _score_matches_distribution(prediction, level_count)
+    ]
     metrics = _common_metrics(run_manifest, manifest, predictions, valid)
     bins = int(evaluation.get("calibration_bins", 10))
     metrics.update({
-        "accuracy_on_valid": sum(correct) / len(correct) if correct else None,
-        "exact_tier_accuracy_on_valid": sum(correct) / len(correct) if correct else None,
-        "ordinal_mae_on_valid": sum(abs(score - label) for score, label in zip(scores, gold)) / len(valid) if valid else None,
-        "top_label_brier_on_valid": sum((confidence - outcome) ** 2 for confidence, outcome in zip(confidences, correct)) / len(valid) if valid else None,
-        "top_label_ece_10_bins": _ece(confidences, correct, bins),
+        "score_nearest_tier_accuracy_on_usable": sum(correct) / len(correct) if correct else None,
+        "score_ordinal_mae_on_usable": sum(abs(score - label) for score, label in zip(scores, gold)) / len(usable) if usable else None,
+        "score_distribution_consistency_rate": len(consistent_distributions) / len(usable) if usable else None,
+        "malformed_response_rate": sum(prediction["status"] == "invalid" for prediction in predictions) / len(predictions) if predictions else None,
+        "level_probability_brier_on_usable": _multiclass_brier(probabilities, gold, level_count),
+        "level_probability_log_loss_on_usable": _multiclass_log_loss(probabilities, gold),
+        "level_probability_ece_10_bins_on_usable": _level_probability_ece(probabilities, gold, level_count, bins),
+        "mean_level_distribution_entropy_on_usable": _mean_distribution_entropy(probabilities),
     })
     return metrics
 
@@ -187,7 +254,7 @@ def evaluation_output_dir(run_manifest: dict[str, Any], evaluation: dict[str, An
 
 def _ordered_scores(metrics: dict[str, Any]) -> dict[str, Any]:
     return order_fields(metrics, (
-        "evaluation_id", "evaluation_version", "evaluation_config_sha256", "task_type", "run_id", "experiment_package_hash", "total_records", "status_counts", "valid_predictions", "partial_predictions", "coverage", "valid_output_rate", "partial_output_rate", "accuracy_on_valid", "exact_tier_accuracy_on_valid", "ordinal_mae_on_valid", "macro_f1_on_valid", "precision_on_valid", "recall_on_valid", "auroc_on_valid", "true_probability_brier_on_valid", "true_probability_ece_10_bins", "top_label_brier_on_valid", "top_label_ece_10_bins", "latency_ms", "cost_usd", "confusion_matrix", "functionality_slices",
+        "evaluation_id", "evaluation_version", "evaluation_config_sha256", "task_type", "run_id", "experiment_package_hash", "total_records", "status_counts", "valid_predictions", "partial_predictions", "coverage", "valid_output_rate", "partial_output_rate", "accuracy_on_valid", "score_nearest_tier_accuracy_on_usable", "score_ordinal_mae_on_usable", "score_distribution_consistency_rate", "malformed_response_rate", "level_probability_brier_on_usable", "level_probability_log_loss_on_usable", "level_probability_ece_10_bins_on_usable", "mean_level_distribution_entropy_on_usable", "macro_f1_on_valid", "precision_on_valid", "recall_on_valid", "auroc_on_valid", "true_probability_brier_on_valid", "true_probability_ece_10_bins", "top_label_brier_on_valid", "top_label_ece_10_bins", "latency_ms", "cost_usd", "confusion_matrix", "functionality_slices",
     ))
 
 

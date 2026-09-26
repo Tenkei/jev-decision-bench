@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -120,15 +121,19 @@ class ScoringTests(unittest.TestCase):
             write_jsonl(
                 run / "predictions.jsonl",
                 [
-                    {"decision_id": "a", "status": "valid", "answer": 2, "score": 2.4, "selected_probability": 0.6, "timing_ms": 10, "cost_usd": None},
-                    {"decision_id": "b", "status": "valid", "answer": 1, "score": 1.0, "selected_probability": 1.0, "timing_ms": 20, "cost_usd": None},
-                    {"decision_id": "c", "status": "partial", "answer": 3, "score": 3.0, "selected_probability": 1.0, "timing_ms": 30, "cost_usd": None},
+                    {"decision_id": "a", "status": "valid", "answer": 2, "score": 2.4, "selected_probability": 0.6, "level_probabilities": {"0": 0.0, "1": 0.0, "2": 0.6, "3": 0.4}, "timing_ms": 10, "cost_usd": None},
+                    {"decision_id": "b", "status": "valid", "answer": 1, "score": 1.0, "selected_probability": 1.0, "level_probabilities": {"0": 0.0, "1": 1.0, "2": 0.0, "3": 0.0}, "timing_ms": 20, "cost_usd": None},
+                    {"decision_id": "c", "status": "partial", "answer": 3, "score": 2.0, "selected_probability": 1.0, "level_probabilities": {"0": 0.0, "1": 0.0, "2": 0.0, "3": 1.0}, "timing_ms": 30, "cost_usd": None},
                 ],
             )
             evaluation = root / "score-evaluation.json"
             _write_evaluation(evaluation, "score")
             _, metrics = score(run, package, evaluation)
-        self.assertAlmostEqual(metrics["exact_tier_accuracy_on_valid"], 0.5)
-        self.assertAlmostEqual(metrics["ordinal_mae_on_valid"], 0.7)
+        self.assertAlmostEqual(metrics["score_nearest_tier_accuracy_on_usable"], 1 / 3)
+        self.assertAlmostEqual(metrics["score_ordinal_mae_on_usable"], 0.8)
+        self.assertAlmostEqual(metrics["score_distribution_consistency_rate"], 2 / 3)
+        self.assertAlmostEqual(metrics["malformed_response_rate"], 0.0)
+        self.assertAlmostEqual(metrics["level_probability_brier_on_usable"], 2.32 / 3)
+        self.assertAlmostEqual(metrics["level_probability_log_loss_on_usable"], (-math.log(0.6) - math.log(1e-15)) / 3)
         self.assertEqual(metrics["partial_predictions"], 1)
         self.assertAlmostEqual(metrics["partial_output_rate"], 1 / 3)
