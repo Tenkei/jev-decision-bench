@@ -29,7 +29,7 @@ def _write_run(directory: Path, run_id: str, metrics: dict[str, float | None]) -
             "accuracy_on_valid": metrics["accuracy"],
             "macro_f1_on_valid": metrics["macro_f1"],
             "top_label_brier_on_valid": metrics["brier"],
-            "top_label_ece_10_bins_on_valid": metrics["ece"],
+            "top_label_ece_10_bins": metrics["ece"],
             "latency_ms": {"p50": metrics["p50"], "p95": metrics["p95"]},
             "cost_usd": {"per_attempted": metrics["cost"]},
         },

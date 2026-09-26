@@ -202,6 +202,46 @@ one; for example, `configs/gemini.json` is a configured Gemini example.
 export LLM_RUN='artifacts/runs/<llm-run-id>'
 ```
 
+### Run several model routes concurrently (optional)
+
+Each individual run sends decisions serially. You may run distinct model routes
+at the same time when faster completion matters more than isolated latency
+measurement. Select only configurations for providers whose credentials are
+available in the current shell. The example below runs the configured TypeSafe,
+Gemini, and Bedrock routes; it deliberately excludes the placeholder
+`configs/openai-compatible.json`.
+
+```bash
+mkdir -p artifacts/logs
+for config in \
+  configs/typesafe-direct.json \
+  configs/gemini.json \
+  configs/bedrock-anthropic-claude-haiku-4.5.json \
+  configs/bedrock-anthropic-claude-sonnet-5-low-effort.json \
+  configs/bedrock-deepseek-v3.2.json \
+  configs/bedrock-openai-gpt-5.6-luna.json \
+  configs/bedrock-openai-gpt-5.6-sol-low-effort.json
+do
+  name="$(basename "$config" .json)"
+  echo "Starting $config"
+  .venv/bin/jev-decision-bench run \
+    --package "$PACKAGE" \
+    --model-config "$config" \
+    >"artifacts/logs/$name.log" 2>&1 &
+done
+wait
+```
+
+The command waits for every started route to finish. Each log contains the
+printed run path and progress; for example, inspect one while it runs with
+`tail -f artifacts/logs/typesafe-direct.log`.
+
+Concurrent routes share the machine's network path, and multiple Bedrock
+routes also share account quotas. They can therefore produce rate-limit
+failures and make latency results unsuitable for a controlled comparison. Run
+the routes one at a time when reporting p50/p95 latency, or when you want to
+minimize quota contention.
+
 Before scoring test records, the runner performs one unscored, in-domain
 synthetic preflight call to verify credentials and response shape. It does not
 reuse a dataset record or include a gold answer. A failed preflight produces a

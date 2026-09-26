@@ -54,7 +54,13 @@ def _run_row(run_dir: Path, experiment_package_hash: str, evaluation: dict[str, 
             "accuracy_on_valid": metrics["accuracy_on_valid"],
             "macro_f1_on_valid": metrics["macro_f1_on_valid"],
             "top_label_brier_on_valid": metrics["top_label_brier_on_valid"],
-            "top_label_ece_10_bins_on_valid": metrics["top_label_ece_10_bins_on_valid"],
+            # Current score artifacts use the metric's canonical name. Retain
+            # the former spelling for legacy evaluation.json artifacts.
+            "top_label_ece_10_bins_on_valid": (
+                metrics["top_label_ece_10_bins"]
+                if "top_label_ece_10_bins" in metrics
+                else metrics["top_label_ece_10_bins_on_valid"]
+            ),
             "p50_latency_ms": metrics["latency_ms"]["p50"],
             "p95_latency_ms": metrics["latency_ms"]["p95"],
             "cost_per_attempted_usd": metrics["cost_usd"]["per_attempted"],
