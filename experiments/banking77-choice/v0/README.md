@@ -1,9 +1,11 @@
 # BANKING77 Choice v0
 
-`banking77-choice-v0` evaluates intent routing for banking-support queries. It
-uses BANKING77's official 3,080-query test split and its 77 fixed intent
-labels. It is a reproducible public classification workload, not a
+`banking77-choice-v0` evaluates intent routing for banking-support queries.
+It uses BANKING77's official 3,080-query test split and 77 fixed intent labels.
+It is a reproducible public classification workload, not a
 contamination-resistant headline evaluation.
+
+## Dataset and preparation
 
 The compiler pins `test.csv` and `categories.json` to the source revision in
 `spec.json`, verifies their SHA-256 hashes and expected row count, then keeps
@@ -31,9 +33,13 @@ Choice request. Conventional LLMs return a schema-constrained rubric key and
 top-label confidence; the runner rejects an unknown rubric key or a confidence
 outside `[0, 1]`.
 
+## Evaluation
+
 `default-evaluation.json` recommends accuracy, macro-F1, top-label Brier
 score, expected calibration error, and a 77-label confusion matrix. The saved
 run evidence can be re-evaluated under another compatible policy without
 calling a model again.
+
+## Dataset notes
 
 BANKING77 is recorded as `CC-BY-4.0` in the pinned experiment specification.

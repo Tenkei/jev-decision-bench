@@ -5,6 +5,8 @@ whether it is hateful according to the dataset's gold-label definition. It is
 a reproducible public guardrail stress test, not a contamination-resistant
 headline evaluation.
 
+## Dataset and preparation
+
 The compiler pins `test_suite_cases.csv` from the HateCheck source revision in
 `spec.json`, verifies its SHA-256 and 3,728-row count, then retains the source
 case ID and functionality in each compiled record. Results can therefore be
@@ -30,13 +32,16 @@ benign-reference example has gold result `false` under the same contract.
 
 JEV returns its native Noul probability of `true`. Conventional LLMs return a
 schema-constrained boolean `answer` and `probability_true`; the runner rejects
-an answer that does not agree with the frozen 0.5 threshold. Scoring reports
-accuracy, precision, recall, AUROC, Brier score, ECE, a binary confusion
-matrix, and per-functionality accuracy. `default-evaluation.json` is the
-recommended scoring policy; it can be replaced when re-evaluating saved
-probabilities without re-running the model.
+an answer that does not agree with the frozen 0.5 threshold.
 
-## Content notice
+## Evaluation
+
+`default-evaluation.json` recommends accuracy, precision, recall, AUROC,
+Brier score, ECE, a binary confusion matrix, and per-functionality accuracy.
+It can be replaced when re-evaluating saved probabilities without re-running
+the model.
+
+## Dataset notes
 
 HateCheck includes hateful and violent language. The generated package and run
 events retain source text and model outputs for auditability, so handle the
