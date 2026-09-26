@@ -281,8 +281,10 @@ counts. Provider failures are not silently counted as incorrect predictions.
 ## 7. Compare the completed runs
 
 Only completed runs made from the same experiment-package hash can be compared.
-Pass JEV explicitly as the baseline; every run in `--runs` is reported with
-its unchanged absolute metrics and metrics relative to that baseline.
+Pass JEV explicitly as the baseline. Comparison always reads the saved run
+evidence directly, so it reports provider health (completion, provider success,
+and valid-output rates) and model performance (latency, reported token usage,
+and known cost) without requiring a scoring step.
 
 ```bash
 .venv/bin/jev-decision-bench compare \
@@ -291,11 +293,18 @@ its unchanged absolute metrics and metrics relative to that baseline.
   --runs "$LLM_RUN"
 ```
 
+When every selected run has a score from the experiment's default policy,
+comparison also includes model-quality metrics such as accuracy, F1, and
+calibration. To require quality metrics from a particular policy, pass its
+path explicitly with `--evaluation`; comparison then stops if any selected run
+does not have a matching score artifact.
+
 The command writes `comparison.json` under
-`artifacts/comparisons/<comparison-id>/`. Deltas are candidate minus baseline,
-so negative Brier/ECE values are better. Latency and cost are ratios to the
-baseline, so values below `1` are faster or cheaper. Cost ratios are `null`
-when either run has no known cost.
+`artifacts/comparisons/<comparison-id>/`. Quality and provider-health deltas
+are candidate minus baseline. Latency, known cost, and reported token-use
+metrics are ratios to the baseline, so values below `1` are lower. Token
+ratios are operational evidence, not a cross-provider cost equivalence: model
+tokenizers and cached or reasoning-token accounting differ by provider.
 
 ## Artifact layout
 

@@ -57,7 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     compare_parser.add_argument("--baseline", required=True, type=Path)
     compare_parser.add_argument("--runs", required=True, type=Path, nargs="+")
     compare_parser.add_argument("--artifacts-root", default="artifacts", type=_artifacts_path)
-    compare_parser.add_argument("--evaluation", type=Path, help="Evaluation policy used to score every compared run")
+    compare_parser.add_argument("--evaluation", type=Path, help="Require quality metrics from scores made with this evaluation policy")
     return parser
 
 
